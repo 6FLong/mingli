@@ -11,13 +11,7 @@
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <div class="top-time" id="currentTime">14:42</div>
         <div class="top-title" id="screenTitle">命理</div>
-        <button class="capsule-button" type="button" aria-label="更多">
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
       </header>
 
       <main class="screen-stack">
@@ -48,35 +42,51 @@
             <button class="link-row" type="button" data-go="detail">查看排盘与判断依据</button>
           </article>
 
-          <section class="quick-grid" aria-label="常用功能">
-            <button class="quick-card tone-gold" type="button" data-go="profiles">
-              <strong>档案管理</strong>
-              <span>新增、搜索、标签整理</span>
+          <section class="home-actions" aria-label="核心入口">
+            <button class="home-action tone-rose" type="button" data-go="ask">
+              <strong>问事</strong>
+              <span>财运/事业/感情</span>
             </button>
-            <button class="quick-card tone-rose" type="button" data-go="ask" data-question="今年运势怎么样？">
-              <strong>今年运势</strong>
-              <span>流年、大运、关键月份</span>
+            <button class="home-action tone-blue" type="button" data-go="detail">
+              <strong>排盘</strong>
+              <span>四柱/十神/大运</span>
             </button>
-            <button class="quick-card tone-blue" type="button" data-go="detail">
-              <strong>八字排盘</strong>
-              <span>四柱、十神、藏干、旺衰</span>
-            </button>
-            <button class="quick-card tone-jade" type="button" data-go="ask" data-question="近三年整体走势如何？">
-              <strong>近三年</strong>
-              <span>趋势、机会、注意点</span>
+            <button class="home-action tone-gold" type="button" data-go="profiles">
+              <strong>档案</strong>
+              <span>新增/搜索/标签</span>
             </button>
           </section>
 
-          <section class="block">
-            <div class="section-head">
-              <h2>常问问题</h2>
-              <button type="button" data-go="ask">更多</button>
+          <section class="advice-card">
+            <div class="section-head compact">
+              <h2>今日建议</h2>
+              <span>给当前档案的行动提醒</span>
             </div>
-            <div class="question-list">
-              <button type="button" data-go="ask" data-question="今年适不适合换工作？">今年适不适合换工作？</button>
-              <button type="button" data-go="ask" data-question="这段关系还能不能继续？">这段关系还能不能继续？</button>
-              <button type="button" data-go="ask" data-question="财运什么时候会有起色？">财运什么时候会有起色？</button>
+            <div class="advice-list">
+              <div>
+                <b>宜</b>
+                <span>整理计划、复盘关系、确认承诺边界</span>
+              </div>
+              <div>
+                <b>慎</b>
+                <span>临时加码投入，或只凭情绪做决定</span>
+              </div>
+              <div>
+                <b>问</b>
+                <span>今天更适合问事业节奏和财务安排</span>
+              </div>
             </div>
+          </section>
+
+          <section class="recent-card">
+            <div class="section-head compact">
+              <h2>最近记录</h2>
+              <button type="button" data-go="ask">继续</button>
+            </div>
+            <button class="recent-item" type="button" data-go="ask" data-question="今年适不适合换工作？">
+              <span>刘某某｜事业</span>
+              <strong>今年适不适合换工作？</strong>
+            </button>
           </section>
         </section>
 
@@ -88,27 +98,12 @@
 
           <section class="panel">
             <div class="field-label">选择档案</div>
-            <div class="ask-profile-search">
-              <input id="askProfileSearch" aria-label="问事页搜索档案" placeholder="搜索姓名、标签、出生年份" />
-              <button type="button" id="resetAskProfileSearch">清空</button>
-            </div>
-            <div class="profile-switcher">
-              <button class="mini-profile is-selected" type="button" data-ask-profile="刘某某 朋友 1992 事业 财运">
-                <strong>刘某某</strong>
-                <span>乾造｜朋友</span>
-              </button>
-              <button class="mini-profile" type="button" data-ask-profile="王某某 家人 1988 婚姻 健康">
-                <strong>王某某</strong>
-                <span>坤造｜家人</span>
-              </button>
-              <button class="mini-profile" type="button" data-ask-profile="陈某某 客户 1996 财运 合作">
-                <strong>陈某某</strong>
-                <span>乾造｜客户</span>
-              </button>
-              <button class="mini-profile" type="button" data-ask-profile="李某某 同事 1990 事业 跳槽">
-                <strong>李某某</strong>
-                <span>坤造｜同事</span>
-              </button>
+            <div class="selected-profile-card">
+              <div>
+                <strong id="selectedProfileName">刘某某</strong>
+                <span id="selectedProfileMeta">乾造｜1992-08-16 申时｜朋友</span>
+              </div>
+              <button type="button" id="openProfilePicker">选择档案</button>
             </div>
           </section>
 
@@ -165,9 +160,12 @@
         </section>
 
         <section class="screen" data-screen="profiles">
-          <div class="page-intro">
-            <h1>档案</h1>
-            <p>本地保存，不上传云端。支持姓名、关系、年份和备注搜索。</p>
+          <div class="page-intro page-intro-action">
+            <div>
+              <h1>档案</h1>
+              <p>本地保存，不上传云端。支持姓名、关系、年份和备注搜索。</p>
+            </div>
+            <button class="page-action" type="button" id="openProfileModal">新增</button>
           </div>
 
           <section class="panel">
@@ -210,57 +208,11 @@
             </article>
           </section>
 
-          <section class="panel">
-            <div class="section-head compact">
-              <h2>新增档案</h2>
-              <span>先做界面，后续接本地数据库</span>
-            </div>
-            <div class="form-grid">
-              <label>
-                <span>姓名或称呼</span>
-                <input placeholder="例如：张某某" />
-              </label>
-              <label>
-                <span>性别</span>
-                <select>
-                  <option>乾造</option>
-                  <option>坤造</option>
-                </select>
-              </label>
-              <label>
-                <span>出生日期</span>
-                <input type="date" />
-              </label>
-              <label>
-                <span>出生时辰</span>
-                <select>
-                  <option>未知</option>
-                  <option>子时</option>
-                  <option>丑时</option>
-                  <option>寅时</option>
-                  <option>卯时</option>
-                  <option>辰时</option>
-                  <option>巳时</option>
-                  <option>午时</option>
-                  <option>未时</option>
-                  <option>申时</option>
-                  <option>酉时</option>
-                  <option>戌时</option>
-                  <option>亥时</option>
-                </select>
-              </label>
-              <label class="wide">
-                <span>备注</span>
-                <input placeholder="关系、出生地、要问的问题" />
-              </label>
-            </div>
-            <button class="primary-button" type="button">保存档案</button>
-          </section>
         </section>
 
         <section class="screen" data-screen="detail">
           <div class="page-intro">
-            <h1>排盘详情</h1>
+            <h1>排盘</h1>
             <p>把命盘、运势和每条判断依据放在同一页，方便回看。</p>
           </div>
 
@@ -368,6 +320,15 @@
           </span>
           问事
         </button>
+        <button class="tab" type="button" data-go="detail">
+          <span class="tab-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="7.4" />
+              <path d="M12 4.6v14.8M4.6 12h14.8M7 7l10 10M17 7 7 17" />
+            </svg>
+          </span>
+          排盘
+        </button>
         <button class="tab" type="button" data-go="profiles">
           <span class="tab-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -387,6 +348,112 @@
           我的
         </button>
       </nav>
+
+      <div class="modal-backdrop" id="profileModal" hidden>
+        <section class="modal-card profile-modal">
+          <div class="modal-head">
+            <h2>新增档案</h2>
+            <button type="button" id="closeProfileModal" aria-label="关闭">×</button>
+          </div>
+          <p>先确认历法，再填写出生日期。出生时间用于自动换算时辰，不知道可以留空。</p>
+
+          <div class="form-grid">
+            <label>
+              <span>姓名或称呼</span>
+              <input id="profileName" placeholder="例如：张某某" />
+            </label>
+            <label>
+              <span>性别</span>
+              <select id="profileGender">
+                <option>乾造</option>
+                <option>坤造</option>
+              </select>
+            </label>
+            <label class="wide">
+              <span>历法</span>
+              <div class="calendar-toggle">
+                <label>
+                  <input type="radio" name="calendarType" value="solar" checked />
+                  <span>阳历</span>
+                </label>
+                <label>
+                  <input type="radio" name="calendarType" value="lunar" />
+                  <span>农历</span>
+                </label>
+              </div>
+            </label>
+            <label>
+              <span>出生日期</span>
+              <input id="profileBirthDate" type="date" />
+            </label>
+            <label>
+              <span>出生时间</span>
+              <input id="profileBirthTime" type="time" />
+            </label>
+            <label>
+              <span>关系标签</span>
+              <select id="profileRelation">
+                <option>家人</option>
+                <option>朋友</option>
+                <option>同事</option>
+                <option>客户</option>
+                <option>其他</option>
+              </select>
+            </label>
+            <label>
+              <span>出生地</span>
+              <input id="profileBirthPlace" placeholder="可选，用于真太阳时" />
+            </label>
+            <label class="wide">
+              <span>备注</span>
+              <input id="profileNote" placeholder="例如：主要关注事业、财运" />
+            </label>
+          </div>
+
+          <div class="form-note">说明：八字需要时柱，后续会由出生时间自动换算；时间未知时按“时辰未知”保存。</div>
+          <button class="primary-button" type="button" id="saveProfileDraft">保存档案</button>
+        </section>
+      </div>
+
+      <div class="modal-backdrop" id="profilePickerModal" hidden>
+        <section class="modal-card picker-modal">
+          <div class="modal-head">
+            <h2>选择档案</h2>
+            <button type="button" id="closeProfilePicker" aria-label="关闭">×</button>
+          </div>
+          <p>档案多的时候，在这里搜索姓名、关系、出生年份就行。</p>
+          <div class="picker-search">
+            <input id="profilePickerSearch" type="text" placeholder="搜索姓名、关系、出生年份" />
+            <button type="button" id="clearProfilePickerSearch">清空</button>
+          </div>
+          <div class="picker-list" id="profilePickerList">
+            <button class="picker-item" type="button" data-pick-profile data-name="刘某某" data-meta="乾造｜1992-08-16 申时｜朋友" data-keywords="刘某某 朋友 1992 事业 财运">
+              <strong>刘某某</strong>
+              <span>乾造｜1992-08-16 申时｜朋友</span>
+            </button>
+            <button class="picker-item" type="button" data-pick-profile data-name="王某某" data-meta="坤造｜1988-12-03 巳时｜家人" data-keywords="王某某 家人 1988 婚姻 健康">
+              <strong>王某某</strong>
+              <span>坤造｜1988-12-03 巳时｜家人</span>
+            </button>
+            <button class="picker-item" type="button" data-pick-profile data-name="陈某某" data-meta="乾造｜1996-04-21 午时｜客户" data-keywords="陈某某 客户 1996 财运 合作">
+              <strong>陈某某</strong>
+              <span>乾造｜1996-04-21 午时｜客户</span>
+            </button>
+            <button class="picker-item" type="button" data-pick-profile data-name="李某某" data-meta="坤造｜1990-09-11 未时｜同事" data-keywords="李某某 同事 1990 事业 跳槽">
+              <strong>李某某</strong>
+              <span>坤造｜1990-09-11 未时｜同事</span>
+            </button>
+            <button class="picker-item" type="button" data-pick-profile data-name="赵某某" data-meta="坤造｜1979-03-28 午时｜家人" data-keywords="赵某某 家人 1979 健康 财运">
+              <strong>赵某某</strong>
+              <span>坤造｜1979-03-28 午时｜家人</span>
+            </button>
+            <button class="picker-item" type="button" data-pick-profile data-name="周某某" data-meta="乾造｜2001-06-05 未知｜朋友" data-keywords="周某某 朋友 2001 学业 选择">
+              <strong>周某某</strong>
+              <span>乾造｜2001-06-05｜朋友</span>
+            </button>
+          </div>
+        </section>
+      </div>
 
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
     </div>
