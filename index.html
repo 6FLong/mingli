@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f1e4fb" />
+    <title>命理</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="top-time" id="currentTime">14:42</div>
+        <div class="top-title" id="screenTitle">命理</div>
+        <button class="capsule-button" type="button" aria-label="更多">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </header>
+
+      <main class="screen-stack">
+        <section class="screen is-active" data-screen="home">
+          <article class="profile-card">
+            <div class="profile-head">
+              <div>
+                <p class="eyebrow">当前档案</p>
+                <h1>刘某某</h1>
+                <p>乾造｜1992-08-16 申时｜朋友</p>
+              </div>
+              <button class="soft-pill" type="button" data-go="profiles">切换</button>
+            </div>
+
+            <div class="summary-grid">
+              <div class="summary-main">
+                <div class="summary-title">今日重点 <span>偏稳</span></div>
+                <p>适合整理计划、复盘关系。财事有机会，但不宜仓促定大额投入。</p>
+              </div>
+              <div class="mini-chart" aria-label="分类趋势">
+                <div style="--v: 78%; --c: #dc6f96"><i></i><b>感情</b></div>
+                <div style="--v: 70%; --c: #e6b74b"><i></i><b>财运</b></div>
+                <div style="--v: 74%; --c: #6f86dc"><i></i><b>事业</b></div>
+                <div style="--v: 82%; --c: #8d78c7"><i></i><b>健康</b></div>
+              </div>
+            </div>
+
+            <button class="link-row" type="button" data-go="detail">查看排盘与判断依据</button>
+          </article>
+
+          <section class="quick-grid" aria-label="常用功能">
+            <button class="quick-card tone-gold" type="button" data-go="profiles">
+              <strong>档案管理</strong>
+              <span>新增、搜索、标签整理</span>
+            </button>
+            <button class="quick-card tone-rose" type="button" data-go="ask" data-question="今年运势怎么样？">
+              <strong>今年运势</strong>
+              <span>流年、大运、关键月份</span>
+            </button>
+            <button class="quick-card tone-blue" type="button" data-go="detail">
+              <strong>八字排盘</strong>
+              <span>四柱、十神、藏干、旺衰</span>
+            </button>
+            <button class="quick-card tone-jade" type="button" data-go="ask" data-question="近三年整体走势如何？">
+              <strong>近三年</strong>
+              <span>趋势、机会、注意点</span>
+            </button>
+          </section>
+
+          <section class="block">
+            <div class="section-head">
+              <h2>常问问题</h2>
+              <button type="button" data-go="ask">更多</button>
+            </div>
+            <div class="question-list">
+              <button type="button" data-go="ask" data-question="今年适不适合换工作？">今年适不适合换工作？</button>
+              <button type="button" data-go="ask" data-question="这段关系还能不能继续？">这段关系还能不能继续？</button>
+              <button type="button" data-go="ask" data-question="财运什么时候会有起色？">财运什么时候会有起色？</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="screen" data-screen="ask">
+          <div class="page-intro">
+            <h1>问事</h1>
+            <p>选择档案和问题方向，结果会展示结论、依据、解释与建议。</p>
+          </div>
+
+          <section class="panel">
+            <div class="field-label">选择档案</div>
+            <div class="ask-profile-search">
+              <input id="askProfileSearch" aria-label="问事页搜索档案" placeholder="搜索姓名、标签、出生年份" />
+              <button type="button" id="resetAskProfileSearch">清空</button>
+            </div>
+            <div class="profile-switcher">
+              <button class="mini-profile is-selected" type="button" data-ask-profile="刘某某 朋友 1992 事业 财运">
+                <strong>刘某某</strong>
+                <span>乾造｜朋友</span>
+              </button>
+              <button class="mini-profile" type="button" data-ask-profile="王某某 家人 1988 婚姻 健康">
+                <strong>王某某</strong>
+                <span>坤造｜家人</span>
+              </button>
+              <button class="mini-profile" type="button" data-ask-profile="陈某某 客户 1996 财运 合作">
+                <strong>陈某某</strong>
+                <span>乾造｜客户</span>
+              </button>
+              <button class="mini-profile" type="button" data-ask-profile="李某某 同事 1990 事业 跳槽">
+                <strong>李某某</strong>
+                <span>坤造｜同事</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="field-label">常用问题</div>
+            <div class="chip-grid" id="questionChips">
+              <button class="is-selected" type="button">今年运势</button>
+              <button type="button">财运</button>
+              <button type="button">事业</button>
+              <button type="button">婚姻感情</button>
+              <button type="button">健康</button>
+              <button type="button">近三年</button>
+            </div>
+            <label class="question-input">
+              <span>具体问题</span>
+              <textarea id="questionText" rows="4">今年适不适合换工作？</textarea>
+            </label>
+            <button class="primary-button" type="button" id="generateResult">生成分析</button>
+          </section>
+
+          <section class="result-card">
+            <div class="result-head">
+              <div>
+                <p class="eyebrow">分析结果</p>
+                <h2 id="resultTitle">今年适不适合换工作？</h2>
+              </div>
+              <span>中等偏谨慎</span>
+            </div>
+
+            <div class="answer-block">
+              <h3>结论</h3>
+              <p>可以观察机会，但不建议裸辞或一次性做过大的职业转向。更适合先争取内部调整、补证书或用副业验证方向。</p>
+            </div>
+
+            <div class="answer-block">
+              <h3>判断依据</h3>
+              <ul class="evidence-list">
+                <li>流年引动事业宫位，确实有变化念头与外部机会。</li>
+                <li>当前大运对日主助力不足，承压后容易先耗精力再见结果。</li>
+                <li>原局比劫偏旺，合伙或同辈竞争中要注意边界和利益分配。</li>
+              </ul>
+            </div>
+
+            <div class="answer-block">
+              <h3>解释</h3>
+              <p>变化信号存在，但支撑变化的资源没有同步变强，所以判断不是“不能动”，而是“要带着缓冲去动”。</p>
+            </div>
+
+            <div class="answer-block">
+              <h3>建议</h3>
+              <p>未来三个月先筛选机会，不急着承诺。涉及薪资、股权、分成的口头约定要落到文字。</p>
+            </div>
+          </section>
+        </section>
+
+        <section class="screen" data-screen="profiles">
+          <div class="page-intro">
+            <h1>档案</h1>
+            <p>本地保存，不上传云端。支持姓名、关系、年份和备注搜索。</p>
+          </div>
+
+          <section class="panel">
+            <div class="archive-search">
+              <input id="archiveSearch" aria-label="搜索档案" placeholder="搜索姓名、标签、出生年份、备注" />
+              <button type="button" id="clearSearch">清空</button>
+            </div>
+            <div class="filter-row">
+              <button class="is-selected" type="button" data-filter="all">全部</button>
+              <button type="button" data-filter="家人">家人</button>
+              <button type="button" data-filter="朋友">朋友</button>
+              <button type="button" data-filter="客户">客户</button>
+            </div>
+          </section>
+
+          <section class="archive-list" id="archiveList">
+            <article class="archive-card" data-keywords="刘某某 朋友 1992 事业 财运">
+              <div>
+                <h2>刘某某</h2>
+                <p>乾造｜1992-08-16 申时｜朋友</p>
+                <span>最近问：今年适不适合换工作？</span>
+              </div>
+              <button type="button" data-go="detail">查看</button>
+            </article>
+            <article class="archive-card" data-keywords="王某某 家人 1988 婚姻 健康">
+              <div>
+                <h2>王某某</h2>
+                <p>坤造｜1988-12-03 巳时｜家人</p>
+                <span>最近问：健康方面要注意什么？</span>
+              </div>
+              <button type="button" data-go="detail">查看</button>
+            </article>
+            <article class="archive-card" data-keywords="陈某某 客户 1996 财运 合作">
+              <div>
+                <h2>陈某某</h2>
+                <p>乾造｜1996-04-21 午时｜客户</p>
+                <span>最近问：合作项目能不能投？</span>
+              </div>
+              <button type="button" data-go="detail">查看</button>
+            </article>
+          </section>
+
+          <section class="panel">
+            <div class="section-head compact">
+              <h2>新增档案</h2>
+              <span>先做界面，后续接本地数据库</span>
+            </div>
+            <div class="form-grid">
+              <label>
+                <span>姓名或称呼</span>
+                <input placeholder="例如：张某某" />
+              </label>
+              <label>
+                <span>性别</span>
+                <select>
+                  <option>乾造</option>
+                  <option>坤造</option>
+                </select>
+              </label>
+              <label>
+                <span>出生日期</span>
+                <input type="date" />
+              </label>
+              <label>
+                <span>出生时辰</span>
+                <select>
+                  <option>未知</option>
+                  <option>子时</option>
+                  <option>丑时</option>
+                  <option>寅时</option>
+                  <option>卯时</option>
+                  <option>辰时</option>
+                  <option>巳时</option>
+                  <option>午时</option>
+                  <option>未时</option>
+                  <option>申时</option>
+                  <option>酉时</option>
+                  <option>戌时</option>
+                  <option>亥时</option>
+                </select>
+              </label>
+              <label class="wide">
+                <span>备注</span>
+                <input placeholder="关系、出生地、要问的问题" />
+              </label>
+            </div>
+            <button class="primary-button" type="button">保存档案</button>
+          </section>
+        </section>
+
+        <section class="screen" data-screen="detail">
+          <div class="page-intro">
+            <h1>排盘详情</h1>
+            <p>把命盘、运势和每条判断依据放在同一页，方便回看。</p>
+          </div>
+
+          <section class="panel">
+            <div class="detail-head">
+              <div>
+                <h2>刘某某</h2>
+                <p>乾造｜1992-08-16 申时</p>
+              </div>
+              <button class="soft-pill" type="button" data-go="ask">继续问</button>
+            </div>
+
+            <div class="pillar-table">
+              <div><span>年柱</span><strong>壬申</strong><em>偏印｜七杀</em></div>
+              <div><span>月柱</span><strong>戊申</strong><em>偏财｜七杀</em></div>
+              <div><span>日柱</span><strong>甲子</strong><em>日主｜正印</em></div>
+              <div><span>时柱</span><strong>壬申</strong><em>偏印｜七杀</em></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-head compact">
+              <h2>大运流年</h2>
+              <span>当前：己巳大运</span>
+            </div>
+            <div class="timeline">
+              <div class="is-current"><b>2026 丙午</b><span>机会增多，先稳后动</span></div>
+              <div><b>2027 丁未</b><span>资源重组，注意合作边界</span></div>
+              <div><b>2028 戊申</b><span>压力明显，适合固本</span></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-head compact">
+              <h2>判断依据</h2>
+              <span>可解释输出样例</span>
+            </div>
+            <div class="basis-list">
+              <article>
+                <h3>流年财星出现</h3>
+                <p>对应现实中的资源、项目、现金流机会，所以财事会被主动触发。</p>
+              </article>
+              <article>
+                <h3>大运帮身不足</h3>
+                <p>机会存在但承接能力不足，容易出现忙、累、回报滞后的情况。</p>
+              </article>
+              <article>
+                <h3>比劫偏旺</h3>
+                <p>同辈竞争、分利、合伙议价要更谨慎，避免情面压过规则。</p>
+              </article>
+            </div>
+          </section>
+        </section>
+
+        <section class="screen" data-screen="mine">
+          <div class="page-intro">
+            <h1>我的</h1>
+            <p>管理示例数据状态和本地备份入口。</p>
+          </div>
+
+          <section class="panel data-panel">
+            <div>
+              <p class="eyebrow">原型数据</p>
+              <h2>当前显示的是示例档案</h2>
+              <p>接入本地数据库后，这里会读取手机浏览器里的真实档案数量。</p>
+            </div>
+            <div class="data-count">
+              <strong>3</strong>
+              <span>示例</span>
+            </div>
+          </section>
+
+          <section class="settings-list">
+            <button type="button" id="exportData">
+              <span>导出本地备份</span>
+              <b>待接入</b>
+            </button>
+            <button type="button" id="importData">
+              <span>导入备份文件</span>
+              <b>待接入</b>
+            </button>
+            <button type="button">
+              <span>分析展示方式</span>
+              <b>详细</b>
+            </button>
+          </section>
+        </section>
+      </main>
+
+      <nav class="tabbar" aria-label="底部导航">
+        <button class="tab is-active" type="button" data-go="home">
+          <span class="tab-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4.5 10.8 12 4.3l7.5 6.5v8a1.4 1.4 0 0 1-1.4 1.4h-4.2v-5.4h-3.8v5.4H5.9a1.4 1.4 0 0 1-1.4-1.4z" />
+            </svg>
+          </span>
+          首页
+        </button>
+        <button class="tab" type="button" data-go="ask">
+          <span class="tab-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 6.4h14a1.4 1.4 0 0 1 1.4 1.4v7.8A1.4 1.4 0 0 1 19 17H10l-4.2 3v-3H5a1.4 1.4 0 0 1-1.4-1.4V7.8A1.4 1.4 0 0 1 5 6.4z" />
+              <path d="M9 10h6M9 13.2h4" />
+            </svg>
+          </span>
+          问事
+        </button>
+        <button class="tab" type="button" data-go="profiles">
+          <span class="tab-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6.2 4.6h11.6a1.5 1.5 0 0 1 1.5 1.5v11.8a1.5 1.5 0 0 1-1.5 1.5H6.2a1.5 1.5 0 0 1-1.5-1.5V6.1a1.5 1.5 0 0 1 1.5-1.5z" />
+              <path d="M8 8.7h8M8 12h8M8 15.3h5" />
+            </svg>
+          </span>
+          档案
+        </button>
+        <button class="tab" type="button" data-go="mine">
+          <span class="tab-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="8.3" r="3.4" />
+              <path d="M5.5 20c1-3.5 3.2-5.2 6.5-5.2s5.5 1.7 6.5 5.2" />
+            </svg>
+          </span>
+          我的
+        </button>
+      </nav>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

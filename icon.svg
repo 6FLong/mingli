@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="命理">
+  <defs>
+    <linearGradient id="bg" x1="80" x2="432" y1="56" y2="456" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4E7FB"/>
+      <stop offset="0.55" stop-color="#EEF8F4"/>
+      <stop offset="1" stop-color="#FFF3DC"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="132" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="170" fill="none" stroke="#6F5AA8" stroke-width="18" opacity="0.52"/>
+  <path d="M176 224h160M196 272h120M214 320h84" fill="none" stroke="#2E2733" stroke-width="24" stroke-linecap="round"/>
+  <path d="M256 140c32 34 69 56 112 67" fill="none" stroke="#D9A441" stroke-width="22" stroke-linecap="round"/>
+  <path d="M256 140c-32 34-69 56-112 67" fill="none" stroke="#D66C8E" stroke-width="22" stroke-linecap="round"/>
+  <text x="256" y="382" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="92" font-weight="800" fill="#2E2733">命</text>
+</svg>
