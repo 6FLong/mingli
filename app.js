@@ -1,14 +1,7 @@
-const screenTitles = {
-  home: "命理",
-  ask: "问事",
-  profiles: "档案",
-  detail: "排盘",
-  mine: "我的",
-};
+const screenNames = new Set(["home", "ask", "profiles", "detail", "mine"]);
 
 const screens = Array.from(document.querySelectorAll(".screen"));
 const tabs = Array.from(document.querySelectorAll(".tabbar .tab"));
-const titleEl = document.querySelector("#screenTitle");
 const toastEl = document.querySelector("#toast");
 const questionText = document.querySelector("#questionText");
 const resultTitle = document.querySelector("#resultTitle");
@@ -35,7 +28,7 @@ function showToast(message) {
 }
 
 function goTo(screenName) {
-  if (!screenTitles[screenName]) return;
+  if (!screenNames.has(screenName)) return;
 
   screens.forEach((screen) => {
     screen.classList.toggle("is-active", screen.dataset.screen === screenName);
@@ -45,7 +38,6 @@ function goTo(screenName) {
     tab.classList.toggle("is-active", tab.dataset.go === screenName);
   });
 
-  titleEl.textContent = screenTitles[screenName];
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 

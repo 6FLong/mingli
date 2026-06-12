@@ -10,12 +10,12 @@
   </head>
   <body>
     <div class="app-shell">
-      <header class="topbar">
-        <div class="top-title" id="screenTitle">命理</div>
-      </header>
-
       <main class="screen-stack">
         <section class="screen is-active" data-screen="home">
+          <div class="page-intro">
+            <h1>首页</h1>
+          </div>
+
           <article class="profile-card">
             <div class="profile-head">
               <div>
@@ -42,37 +42,51 @@
             <button class="link-row" type="button" data-go="detail">查看排盘与判断依据</button>
           </article>
 
-          <section class="home-actions" aria-label="核心入口">
-            <button class="home-action tone-rose" type="button" data-go="ask">
+          <section class="home-actions split-actions" aria-label="核心入口">
+            <button class="home-action home-action-main tone-rose" type="button" data-go="ask">
               <strong>问事</strong>
-              <span>财运/事业/感情</span>
+              <span>财运、事业、感情</span>
             </button>
-            <button class="home-action tone-blue" type="button" data-go="detail">
-              <strong>排盘</strong>
-              <span>四柱/十神/大运</span>
-            </button>
-            <button class="home-action tone-gold" type="button" data-go="profiles">
-              <strong>档案</strong>
-              <span>新增/搜索/标签</span>
-            </button>
+            <div class="home-action-side">
+              <button class="home-action tone-blue" type="button" data-go="detail">
+                <strong>排盘</strong>
+                <span>四柱、十神、大运</span>
+                <i class="feature-art">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="7.2" />
+                    <path d="M12 4.8v14.4M4.8 12h14.4M7.1 7.1l9.8 9.8M16.9 7.1l-9.8 9.8" />
+                  </svg>
+                </i>
+              </button>
+              <button class="home-action tone-gold" type="button" data-go="profiles">
+                <strong>档案</strong>
+                <span>新增、搜索、标签</span>
+                <i class="feature-art">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6.2 4.8h11.6a1.4 1.4 0 0 1 1.4 1.4v11.6a1.4 1.4 0 0 1-1.4 1.4H6.2a1.4 1.4 0 0 1-1.4-1.4V6.2a1.4 1.4 0 0 1 1.4-1.4z" />
+                    <path d="M8.5 9h7M8.5 12h7M8.5 15h4.4" />
+                  </svg>
+                </i>
+              </button>
+            </div>
           </section>
 
           <section class="advice-card">
             <div class="section-head compact">
               <h2>今日建议</h2>
-              <span>给当前档案的行动提醒</span>
+              <span>当前档案</span>
             </div>
             <div class="advice-list">
               <div>
-                <b>宜</b>
+                <b><svg viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" /></svg></b>
                 <span>整理计划、复盘关系、确认承诺边界</span>
               </div>
               <div>
-                <b>慎</b>
+                <b><svg viewBox="0 0 24 24"><path d="M12 5v8M12 17.5v.1" /></svg></b>
                 <span>临时加码投入，或只凭情绪做决定</span>
               </div>
               <div>
-                <b>问</b>
+                <b><svg viewBox="0 0 24 24"><path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-.9.7-1.7 1.2-1.7 2.7M12 17.5v.1" /></svg></b>
                 <span>今天更适合问事业节奏和财务安排</span>
               </div>
             </div>
@@ -84,8 +98,11 @@
               <button type="button" data-go="ask">继续</button>
             </div>
             <button class="recent-item" type="button" data-go="ask" data-question="今年适不适合换工作？">
-              <span>刘某某｜事业</span>
-              <strong>今年适不适合换工作？</strong>
+              <i class="icon-badge small"><svg viewBox="0 0 24 24"><path d="M5 7h14M7 7v12h10V7M9 7V5h6v2" /></svg></i>
+              <div>
+                <span>刘某某｜事业</span>
+                <strong>今年适不适合换工作？</strong>
+              </div>
             </button>
           </section>
         </section>
@@ -93,7 +110,6 @@
         <section class="screen" data-screen="ask">
           <div class="page-intro">
             <h1>问事</h1>
-            <p>选择档案和问题方向，结果会展示结论、依据、解释与建议。</p>
           </div>
 
           <section class="panel">
@@ -163,9 +179,12 @@
           <div class="page-intro page-intro-action">
             <div>
               <h1>档案</h1>
-              <p>本地保存，不上传云端。支持姓名、关系、年份和备注搜索。</p>
             </div>
-            <button class="page-action" type="button" id="openProfileModal">新增</button>
+            <button class="page-action icon-only" type="button" id="openProfileModal" aria-label="新增档案">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
           </div>
 
           <section class="panel">
@@ -183,6 +202,7 @@
 
           <section class="archive-list" id="archiveList">
             <article class="archive-card" data-keywords="刘某某 朋友 1992 事业 财运">
+              <i class="avatar-mark">刘</i>
               <div>
                 <h2>刘某某</h2>
                 <p>乾造｜1992-08-16 申时｜朋友</p>
@@ -191,6 +211,7 @@
               <button type="button" data-go="detail">查看</button>
             </article>
             <article class="archive-card" data-keywords="王某某 家人 1988 婚姻 健康">
+              <i class="avatar-mark">王</i>
               <div>
                 <h2>王某某</h2>
                 <p>坤造｜1988-12-03 巳时｜家人</p>
@@ -199,6 +220,7 @@
               <button type="button" data-go="detail">查看</button>
             </article>
             <article class="archive-card" data-keywords="陈某某 客户 1996 财运 合作">
+              <i class="avatar-mark">陈</i>
               <div>
                 <h2>陈某某</h2>
                 <p>乾造｜1996-04-21 午时｜客户</p>
@@ -213,7 +235,6 @@
         <section class="screen" data-screen="detail">
           <div class="page-intro">
             <h1>排盘</h1>
-            <p>把命盘、运势和每条判断依据放在同一页，方便回看。</p>
           </div>
 
           <section class="panel">
@@ -270,14 +291,13 @@
         <section class="screen" data-screen="mine">
           <div class="page-intro">
             <h1>我的</h1>
-            <p>管理示例数据状态和本地备份入口。</p>
           </div>
 
           <section class="panel data-panel">
             <div>
               <p class="eyebrow">原型数据</p>
-              <h2>当前显示的是示例档案</h2>
-              <p>接入本地数据库后，这里会读取手机浏览器里的真实档案数量。</p>
+              <h2>示例档案</h2>
+              <p>接入本地数据库后自动统计。</p>
             </div>
             <div class="data-count">
               <strong>3</strong>
@@ -287,15 +307,15 @@
 
           <section class="settings-list">
             <button type="button" id="exportData">
-              <span>导出本地备份</span>
+              <span><i class="setting-icon">↓</i>导出本地备份</span>
               <b>待接入</b>
             </button>
             <button type="button" id="importData">
-              <span>导入备份文件</span>
+              <span><i class="setting-icon">↑</i>导入备份文件</span>
               <b>待接入</b>
             </button>
             <button type="button">
-              <span>分析展示方式</span>
+              <span><i class="setting-icon">≡</i>分析展示方式</span>
               <b>详细</b>
             </button>
           </section>
@@ -355,7 +375,7 @@
             <h2>新增档案</h2>
             <button type="button" id="closeProfileModal" aria-label="关闭">×</button>
           </div>
-          <p>先确认历法，再填写出生日期。出生时间用于自动换算时辰，不知道可以留空。</p>
+          <p>选择历法，填写出生日期和时间。</p>
 
           <div class="form-grid">
             <label>
@@ -421,7 +441,7 @@
             <h2>选择档案</h2>
             <button type="button" id="closeProfilePicker" aria-label="关闭">×</button>
           </div>
-          <p>档案多的时候，在这里搜索姓名、关系、出生年份就行。</p>
+          <p>搜索姓名、关系或出生年份。</p>
           <div class="picker-search">
             <input id="profilePickerSearch" type="text" placeholder="搜索姓名、关系、出生年份" />
             <button type="button" id="clearProfilePickerSearch">清空</button>
