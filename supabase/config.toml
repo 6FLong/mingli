@@ -1,0 +1,13 @@
+project_id = "tcqyntzbeinlygvwahav"
+
+[functions.auth-login]
+verify_jwt = false
+
+[functions.ai-consult]
+verify_jwt = true
+
+[functions.profile-delete]
+verify_jwt = true
+
+[functions.report-restore]
+verify_jwt = true

@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+.supabase/
+supabase/.temp/
+.tools/
+tools/.artifacts/
+node_modules/
+dist/
+coverage/
+*.log

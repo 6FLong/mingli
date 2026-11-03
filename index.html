@@ -3,176 +3,158 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#f1e4fb" />
+    <meta name="theme-color" content="#e5f1ef" />
     <title>命理</title>
-    <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="manifest" href="./manifest.webmanifest?v=product-32" />
+    <link rel="icon" href="./icon-192.png" sizes="192x192" type="image/png" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <link rel="stylesheet" href="./styles.css?v=product-32" />
+    <script src="./app-config.js?v=2026110306"></script>
   </head>
-  <body>
-    <div class="app-shell">
+  <body class="auth-pending">
+    <section class="auth-gate" id="authGate" aria-labelledby="loginTitle">
+      <div class="auth-panel">
+        <div class="auth-brand" aria-hidden="true">命</div>
+        <div>
+          <p class="eyebrow">命理咨询工作台</p>
+          <h1 id="loginTitle">登录</h1>
+        </div>
+        <form id="loginForm" autocomplete="off" novalidate>
+          <label class="auth-field">
+            <span>登录账户</span>
+            <input id="loginAccount" name="login-account" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" />
+          </label>
+          <label class="auth-field">
+            <span>密码</span>
+            <input id="loginPassword" name="login-password" type="password" autocomplete="off" />
+          </label>
+          <p class="auth-status" id="loginStatus" role="status" aria-live="polite"></p>
+          <button class="primary-button auth-submit" type="submit" id="loginSubmit">登录</button>
+        </form>
+      </div>
+    </section>
+
+    <div class="app-shell" id="businessApp" hidden>
       <main class="screen-stack">
         <section class="screen is-active" data-screen="home">
-          <div class="page-intro">
-            <h1>首页</h1>
+          <div class="page-intro home-titlebar">
+            <h1>命理咨询</h1>
           </div>
 
-          <article class="profile-card">
+          <article class="profile-card current-profile-card">
             <div class="profile-head">
               <div>
                 <p class="eyebrow">当前档案</p>
-                <h1>刘某某</h1>
-                <p>乾造｜1992-08-16 申时｜朋友</p>
+                <h1 data-current-profile-name>未选择档案</h1>
+                <p data-current-profile-meta>请先创建第一个档案</p>
               </div>
-              <button class="soft-pill" type="button" data-go="profiles">切换</button>
+              <button class="soft-pill profile-switch" type="button" data-open-profile-picker>新增档案</button>
             </div>
-
-            <div class="summary-grid">
-              <div class="summary-main">
-                <div class="summary-title">今日重点 <span>偏稳</span></div>
-                <p>适合整理计划、复盘关系。财事有机会，但不宜仓促定大额投入。</p>
-              </div>
-              <div class="mini-chart" aria-label="分类趋势">
-                <div style="--v: 78%; --c: #dc6f96"><i></i><b>感情</b></div>
-                <div style="--v: 70%; --c: #e6b74b"><i></i><b>财运</b></div>
-                <div style="--v: 74%; --c: #6f86dc"><i></i><b>事业</b></div>
-                <div style="--v: 82%; --c: #8d78c7"><i></i><b>健康</b></div>
-              </div>
+            <div class="current-stage">
+              <span id="todayStateLabel">待建立</span>
+              <p id="todayStateText">创建第一个档案后显示当前命盘阶段。</p>
             </div>
-
-            <button class="link-row" type="button" data-go="detail">查看排盘与判断依据</button>
           </article>
 
-          <section class="home-actions split-actions" aria-label="核心入口">
-            <button class="home-action home-action-main tone-rose" type="button" data-go="ask">
-              <strong>问事</strong>
-              <span>财运、事业、感情</span>
-            </button>
-            <div class="home-action-side">
-              <button class="home-action tone-blue" type="button" data-go="detail">
-                <strong>排盘</strong>
-                <span>四柱、十神、大运</span>
-                <i class="feature-art">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="12" cy="12" r="7.2" />
-                    <path d="M12 4.8v14.4M4.8 12h14.4M7.1 7.1l9.8 9.8M16.9 7.1l-9.8 9.8" />
-                  </svg>
-                </i>
-              </button>
-              <button class="home-action tone-gold" type="button" data-go="profiles">
-                <strong>档案</strong>
-                <span>新增、搜索、标签</span>
-                <i class="feature-art">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M6.2 4.8h11.6a1.4 1.4 0 0 1 1.4 1.4v11.6a1.4 1.4 0 0 1-1.4 1.4H6.2a1.4 1.4 0 0 1-1.4-1.4V6.2a1.4 1.4 0 0 1 1.4-1.4z" />
-                    <path d="M8.5 9h7M8.5 12h7M8.5 15h4.4" />
-                  </svg>
-                </i>
-              </button>
-            </div>
-          </section>
-
-          <section class="advice-card">
-            <div class="section-head compact">
-              <h2>今日建议</h2>
-              <span>当前档案</span>
-            </div>
-            <div class="advice-list">
-              <div>
-                <b><svg viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" /></svg></b>
-                <span>整理计划、复盘关系、确认承诺边界</span>
-              </div>
-              <div>
-                <b><svg viewBox="0 0 24 24"><path d="M12 5v8M12 17.5v.1" /></svg></b>
-                <span>临时加码投入，或只凭情绪做决定</span>
-              </div>
-              <div>
-                <b><svg viewBox="0 0 24 24"><path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-.9.7-1.7 1.2-1.7 2.7M12 17.5v.1" /></svg></b>
-                <span>今天更适合问事业节奏和财务安排</span>
-              </div>
-            </div>
-          </section>
-
-          <section class="recent-card">
-            <div class="section-head compact">
-              <h2>最近记录</h2>
-              <button type="button" data-go="ask">继续</button>
-            </div>
-            <button class="recent-item" type="button" data-go="ask" data-question="今年适不适合换工作？">
-              <i class="icon-badge small"><svg viewBox="0 0 24 24"><path d="M5 7h14M7 7v12h10V7M9 7V5h6v2" /></svg></i>
-              <div>
-                <span>刘某某｜事业</span>
-                <strong>今年适不适合换工作？</strong>
-              </div>
-            </button>
-          </section>
-        </section>
-
-        <section class="screen" data-screen="ask">
-          <div class="page-intro">
-            <h1>问事</h1>
+          <div class="home-segments" role="tablist" aria-label="当前档案内容">
+            <button class="is-selected" type="button" role="tab" aria-selected="true" data-home-view="conversation">历史对话</button>
+            <button type="button" role="tab" aria-selected="false" data-home-view="chart">排盘</button>
+            <button type="button" role="tab" aria-selected="false" data-home-view="report">分析报告</button>
           </div>
 
-          <section class="panel">
-            <div class="field-label">选择档案</div>
-            <div class="selected-profile-card">
-              <div>
-                <strong id="selectedProfileName">刘某某</strong>
-                <span id="selectedProfileMeta">乾造｜1992-08-16 申时｜朋友</span>
+          <div class="home-workspace is-active" data-home-panel="conversation">
+            <section class="workspace-section conversation-history">
+              <div class="conversation-toolbar">
+                <button class="conversation-picker-button" type="button" id="openConversationPicker">
+                  <span>当前会话</span>
+                  <strong id="currentConversationTitle">新咨询</strong>
+                </button>
+                <button class="icon-command" type="button" id="newConversation" aria-label="新建会话" title="新建会话">＋</button>
               </div>
-              <button type="button" id="openProfilePicker">选择档案</button>
-            </div>
-          </section>
+              <button class="load-earlier" type="button" id="loadEarlierMessages" hidden>加载更早消息</button>
+              <div class="chat-thread" id="recentQuestionList" aria-live="polite"></div>
+              <button type="button" id="viewAllQuestions" hidden>查看全部</button>
+              <div class="history-list" id="questionHistoryList" hidden></div>
+            </section>
 
-          <section class="panel">
-            <div class="field-label">常用问题</div>
-            <div class="chip-grid" id="questionChips">
-              <button class="is-selected" type="button">今年运势</button>
-              <button type="button">财运</button>
-              <button type="button">事业</button>
-              <button type="button">婚姻感情</button>
-              <button type="button">健康</button>
-              <button type="button">近三年</button>
-            </div>
-            <label class="question-input">
-              <span>具体问题</span>
-              <textarea id="questionText" rows="4">今年适不适合换工作？</textarea>
-            </label>
-            <button class="primary-button" type="button" id="generateResult">生成分析</button>
-          </section>
-
-          <section class="result-card">
-            <div class="result-head">
-              <div>
-                <p class="eyebrow">分析结果</p>
-                <h2 id="resultTitle">今年适不适合换工作？</h2>
+            <section class="workspace-section question-compose">
+              <div class="chip-grid" id="questionChips" aria-label="快捷问题">
+                <button type="button">今年运势</button>
+                <button type="button">财运</button>
+                <button type="button">事业</button>
+                <button type="button">婚姻感情</button>
+                <button type="button">健康</button>
+                <button type="button">子女生育</button>
+                <button type="button">家庭居住</button>
+                <button type="button">合同风险</button>
+                <button type="button">出行迁移</button>
+                <button type="button">近三年</button>
               </div>
-              <span>中等偏谨慎</span>
-            </div>
+              <label class="question-input">
+                <span>输入要咨询的具体问题</span>
+                <textarea id="questionText" rows="3" placeholder="例如：我最近有一个新工作机会，适合接受吗？"></textarea>
+              </label>
+              <button class="primary-button" type="button" id="generateResult">发送问题</button>
+            </section>
 
-            <div class="answer-block">
-              <h3>结论</h3>
-              <p>可以观察机会，但不建议裸辞或一次性做过大的职业转向。更适合先争取内部调整、补证书或用副业验证方向。</p>
-            </div>
+            <section class="result-card" id="analysisResult" hidden>
+              <div class="result-head">
+                <div>
+                  <p class="eyebrow">分析结果</p>
+                  <h2 id="resultTitle"></h2>
+                </div>
+                <span id="analysisTone"></span>
+              </div>
+              <div class="answer-block"><h3>直接回答</h3><p id="resultConclusion"></p></div>
+              <div class="answer-block"><h3>现代解释</h3><p id="resultExplanation"></p></div>
+              <div class="answer-block"><h3>命理依据</h3><ul class="evidence-list" id="resultEvidence"></ul></div>
+              <div class="answer-block"><h3>现实建议</h3><p id="resultSuggestion"></p></div>
+              <div class="answer-block" id="resultUncertaintyBlock" hidden><h3>不确定性</h3><ul class="evidence-list" id="resultUncertainty"></ul></div>
+            </section>
+          </div>
 
-            <div class="answer-block">
-              <h3>判断依据</h3>
-              <ul class="evidence-list">
-                <li>流年引动事业宫位，确实有变化念头与外部机会。</li>
-                <li>当前大运对日主助力不足，承压后容易先耗精力再见结果。</li>
-                <li>原局比劫偏旺，合伙或同辈竞争中要注意边界和利益分配。</li>
-              </ul>
-            </div>
+          <div class="home-workspace" data-home-panel="chart" hidden>
+            <section class="workspace-section chart-overview">
+              <div class="chart-summary">
+                <span>现代解读</span>
+                <strong id="chartSummaryTitle">先看整体节奏</strong>
+                <p id="chartSummaryText">排盘完成后，会先用现代话说明命盘主调和当前阶段。</p>
+                <div class="chart-summary-tags" id="chartSummaryTags"></div>
+              </div>
+              <div class="pillar-table" id="chartPillars">
+                <div><span>年柱</span><strong>—</strong><em>—</em></div>
+                <div><span>月柱</span><strong>—</strong><em>—</em></div>
+                <div><span>日柱</span><strong>—</strong><em>—</em></div>
+                <div><span>时柱</span><strong>—</strong><em>—</em></div>
+              </div>
+            </section>
+            <section class="workspace-section">
+              <div class="section-head compact"><h2>大运与流年</h2><span id="currentLuckLabel">当前：请先创建档案</span></div>
+              <div class="timeline" id="luckTimeline"></div>
+            </section>
+            <section class="workspace-section">
+              <div class="section-head compact"><h2>命盘结构与判断依据</h2></div>
+              <div class="basis-list" id="chartBasis"></div>
+            </section>
+          </div>
 
-            <div class="answer-block">
-              <h3>解释</h3>
-              <p>变化信号存在，但支撑变化的资源没有同步变强，所以判断不是“不能动”，而是“要带着缓冲去动”。</p>
-            </div>
-
-            <div class="answer-block">
-              <h3>建议</h3>
-              <p>未来三个月先筛选机会，不急着承诺。涉及薪资、股权、分成的口头约定要落到文字。</p>
-            </div>
-          </section>
+          <div class="home-workspace" data-home-panel="report" hidden>
+            <section class="workspace-section report-workspace" id="reportPreview">
+              <div class="report-toolbar">
+                <div>
+                  <p class="eyebrow">当前分析报告</p>
+                  <h2 id="reportStatusTitle">尚未生成报告</h2>
+                  <p id="reportStatusText">完成首次咨询后，这里会展示持续更新的分析报告。</p>
+                </div>
+                <span class="report-sync-status" id="reportSyncStatus">未生成</span>
+              </div>
+              <div class="report-preview-content" id="reportPreviewContent"></div>
+              <div class="report-actions">
+                <button class="secondary-button" type="button" id="refreshCurrentReport">更新报告</button>
+                <button class="primary-button" type="button" id="saveCurrentReport">保存报告</button>
+              </div>
+            </section>
+          </div>
         </section>
 
         <section class="screen" data-screen="profiles">
@@ -194,98 +176,15 @@
             </div>
             <div class="filter-row">
               <button class="is-selected" type="button" data-filter="all">全部</button>
+              <button type="button" data-filter="本人">本人</button>
               <button type="button" data-filter="家人">家人</button>
-              <button type="button" data-filter="朋友">朋友</button>
               <button type="button" data-filter="客户">客户</button>
+              <button type="button" data-filter="expired">已到期</button>
             </div>
           </section>
 
-          <section class="archive-list" id="archiveList">
-            <article class="archive-card" data-keywords="刘某某 朋友 1992 事业 财运">
-              <i class="avatar-mark">刘</i>
-              <div>
-                <h2>刘某某</h2>
-                <p>乾造｜1992-08-16 申时｜朋友</p>
-                <span>最近问：今年适不适合换工作？</span>
-              </div>
-              <button type="button" data-go="detail">查看</button>
-            </article>
-            <article class="archive-card" data-keywords="王某某 家人 1988 婚姻 健康">
-              <i class="avatar-mark">王</i>
-              <div>
-                <h2>王某某</h2>
-                <p>坤造｜1988-12-03 巳时｜家人</p>
-                <span>最近问：健康方面要注意什么？</span>
-              </div>
-              <button type="button" data-go="detail">查看</button>
-            </article>
-            <article class="archive-card" data-keywords="陈某某 客户 1996 财运 合作">
-              <i class="avatar-mark">陈</i>
-              <div>
-                <h2>陈某某</h2>
-                <p>乾造｜1996-04-21 午时｜客户</p>
-                <span>最近问：合作项目能不能投？</span>
-              </div>
-              <button type="button" data-go="detail">查看</button>
-            </article>
-          </section>
+          <section class="archive-list" id="archiveList"></section>
 
-        </section>
-
-        <section class="screen" data-screen="detail">
-          <div class="page-intro">
-            <h1>排盘</h1>
-          </div>
-
-          <section class="panel">
-            <div class="detail-head">
-              <div>
-                <h2>刘某某</h2>
-                <p>乾造｜1992-08-16 申时</p>
-              </div>
-              <button class="soft-pill" type="button" data-go="ask">继续问</button>
-            </div>
-
-            <div class="pillar-table">
-              <div><span>年柱</span><strong>壬申</strong><em>偏印｜七杀</em></div>
-              <div><span>月柱</span><strong>戊申</strong><em>偏财｜七杀</em></div>
-              <div><span>日柱</span><strong>甲子</strong><em>日主｜正印</em></div>
-              <div><span>时柱</span><strong>壬申</strong><em>偏印｜七杀</em></div>
-            </div>
-          </section>
-
-          <section class="panel">
-            <div class="section-head compact">
-              <h2>大运流年</h2>
-              <span>当前：己巳大运</span>
-            </div>
-            <div class="timeline">
-              <div class="is-current"><b>2026 丙午</b><span>机会增多，先稳后动</span></div>
-              <div><b>2027 丁未</b><span>资源重组，注意合作边界</span></div>
-              <div><b>2028 戊申</b><span>压力明显，适合固本</span></div>
-            </div>
-          </section>
-
-          <section class="panel">
-            <div class="section-head compact">
-              <h2>判断依据</h2>
-              <span>可解释输出样例</span>
-            </div>
-            <div class="basis-list">
-              <article>
-                <h3>流年财星出现</h3>
-                <p>对应现实中的资源、项目、现金流机会，所以财事会被主动触发。</p>
-              </article>
-              <article>
-                <h3>大运帮身不足</h3>
-                <p>机会存在但承接能力不足，容易出现忙、累、回报滞后的情况。</p>
-              </article>
-              <article>
-                <h3>比劫偏旺</h3>
-                <p>同辈竞争、分利、合伙议价要更谨慎，避免情面压过规则。</p>
-              </article>
-            </div>
-          </section>
         </section>
 
         <section class="screen" data-screen="mine">
@@ -295,29 +194,46 @@
 
           <section class="panel data-panel">
             <div>
-              <p class="eyebrow">原型数据</p>
-              <h2>示例档案</h2>
-              <p>接入本地数据库后自动统计。</p>
+              <p class="eyebrow">云端数据</p>
+              <h2>已保存 <span data-profile-count>0</span> 份档案</h2>
+              <p>档案、命盘和咨询记录由当前管理员账号保存。</p>
             </div>
             <div class="data-count">
-              <strong>3</strong>
-              <span>示例</span>
+              <strong data-profile-count>0</strong>
             </div>
           </section>
 
-          <section class="settings-list">
-            <button type="button" id="exportData">
-              <span><i class="setting-icon">↓</i>导出本地备份</span>
-              <b>待接入</b>
-            </button>
-            <button type="button" id="importData">
-              <span><i class="setting-icon">↑</i>导入备份文件</span>
-              <b>待接入</b>
-            </button>
-            <button type="button">
-              <span><i class="setting-icon">≡</i>分析展示方式</span>
-              <b>详细</b>
-            </button>
+          <section class="settings-group">
+            <h2>账户</h2>
+            <div class="settings-list">
+              <div class="setting-row">
+                <span><i class="setting-icon">账</i>当前账户</span>
+                <b id="currentAccountLabel">已登录</b>
+              </div>
+              <button type="button" id="openLoginLogs"><span><i class="setting-icon">记</i>登录日志</span><b>查看</b></button>
+              <button type="button" id="openPasswordModal"><span><i class="setting-icon">密</i>修改密码</span><b>修改</b></button>
+              <button type="button" class="danger-setting" id="logoutAccount"><span><i class="setting-icon">退</i>退出登录</span><b></b></button>
+            </div>
+          </section>
+
+          <section class="settings-group">
+            <h2>数据</h2>
+            <div class="settings-list">
+              <button type="button" id="openExpiredProfiles"><span><i class="setting-icon">期</i>待处理客户</span><b id="expiredProfileCount">0</b></button>
+              <button type="button" id="exportData"><span><i class="setting-icon">↓</i>导出全部分析报告</span><b>导出</b></button>
+              <button type="button" id="importData"><span><i class="setting-icon">↑</i>导入报告备份</span><b>导入</b></button>
+              <button type="button" id="migrateLegacyData" hidden><span><i class="setting-icon">迁</i>迁移本机旧档案</span><b><span id="legacyMigrationCount">0</span> 份</b></button>
+              <input id="backupFileInput" type="file" accept="application/zip,.zip,application/json,.json" hidden />
+            </div>
+          </section>
+
+          <section class="settings-group">
+            <h2>应用</h2>
+            <div class="settings-list">
+              <div class="setting-row"><span><i class="setting-icon">云</i>云端连接</span><b>正常</b></div>
+              <div class="setting-row"><span><i class="setting-icon">版</i>应用版本</span><b>product-32</b></div>
+              <div class="setting-row"><span><i class="setting-icon">私</i>隐私范围</span><b>仅管理员</b></div>
+            </div>
           </section>
         </section>
       </main>
@@ -330,24 +246,6 @@
             </svg>
           </span>
           首页
-        </button>
-        <button class="tab" type="button" data-go="ask">
-          <span class="tab-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 6.4h14a1.4 1.4 0 0 1 1.4 1.4v7.8A1.4 1.4 0 0 1 19 17H10l-4.2 3v-3H5a1.4 1.4 0 0 1-1.4-1.4V7.8A1.4 1.4 0 0 1 5 6.4z" />
-              <path d="M9 10h6M9 13.2h4" />
-            </svg>
-          </span>
-          问事
-        </button>
-        <button class="tab" type="button" data-go="detail">
-          <span class="tab-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="7.4" />
-              <path d="M12 4.6v14.8M4.6 12h14.8M7 7l10 10M17 7 7 17" />
-            </svg>
-          </span>
-          排盘
         </button>
         <button class="tab" type="button" data-go="profiles">
           <span class="tab-icon">
@@ -372,10 +270,10 @@
       <div class="modal-backdrop" id="profileModal" hidden>
         <section class="modal-card profile-modal">
           <div class="modal-head">
-            <h2>新增档案</h2>
+            <h2 id="profileModalTitle">新增档案</h2>
             <button type="button" id="closeProfileModal" aria-label="关闭">×</button>
           </div>
-          <p>选择历法，填写出生日期和时间。</p>
+          <p id="profileModalIntro">选择历法，填写出生日期和时间。</p>
 
           <div class="form-grid">
             <label>
@@ -402,27 +300,28 @@
                 </label>
               </div>
             </label>
+            <label class="wide lunar-leap-row">
+              <span>农历闰月</span>
+              <label class="check-row">
+                <input id="profileLunarLeap" type="checkbox" />
+                <span>出生月份为闰月</span>
+              </label>
+            </label>
             <label>
               <span>出生日期</span>
-              <input id="profileBirthDate" type="date" />
+              <input id="profileBirthDate" class="picker-input" type="text" placeholder="选择出生日期" readonly data-open-date-picker />
             </label>
             <label>
               <span>出生时间</span>
-              <input id="profileBirthTime" type="time" />
+              <input id="profileBirthTime" class="picker-input" type="text" placeholder="选择时辰" readonly data-open-option-picker="birthTime" />
             </label>
             <label>
               <span>关系标签</span>
-              <select id="profileRelation">
-                <option>家人</option>
-                <option>朋友</option>
-                <option>同事</option>
-                <option>客户</option>
-                <option>其他</option>
-              </select>
+              <input id="profileRelation" class="picker-input" type="text" placeholder="选择关系" readonly data-open-option-picker="relation" />
             </label>
             <label>
               <span>出生地</span>
-              <input id="profileBirthPlace" placeholder="可选，用于真太阳时" />
+              <input id="profileBirthPlace" class="picker-input" type="text" placeholder="选择城市/地区" readonly data-open-option-picker="birthPlace" />
             </label>
             <label class="wide">
               <span>备注</span>
@@ -430,7 +329,7 @@
             </label>
           </div>
 
-          <div class="form-note">说明：八字需要时柱，后续会由出生时间自动换算；时间未知时按“时辰未知”保存。</div>
+          <div class="form-note">说明：农历换算内置 1900-2100 年闰月表；出生时间按时辰换算时柱；出生地用于真太阳时修正，选择城市/地区即可。</div>
           <button class="primary-button" type="button" id="saveProfileDraft">保存档案</button>
         </section>
       </div>
@@ -446,38 +345,173 @@
             <input id="profilePickerSearch" type="text" placeholder="搜索姓名、关系、出生年份" />
             <button type="button" id="clearProfilePickerSearch">清空</button>
           </div>
-          <div class="picker-list" id="profilePickerList">
-            <button class="picker-item" type="button" data-pick-profile data-name="刘某某" data-meta="乾造｜1992-08-16 申时｜朋友" data-keywords="刘某某 朋友 1992 事业 财运">
-              <strong>刘某某</strong>
-              <span>乾造｜1992-08-16 申时｜朋友</span>
-            </button>
-            <button class="picker-item" type="button" data-pick-profile data-name="王某某" data-meta="坤造｜1988-12-03 巳时｜家人" data-keywords="王某某 家人 1988 婚姻 健康">
-              <strong>王某某</strong>
-              <span>坤造｜1988-12-03 巳时｜家人</span>
-            </button>
-            <button class="picker-item" type="button" data-pick-profile data-name="陈某某" data-meta="乾造｜1996-04-21 午时｜客户" data-keywords="陈某某 客户 1996 财运 合作">
-              <strong>陈某某</strong>
-              <span>乾造｜1996-04-21 午时｜客户</span>
-            </button>
-            <button class="picker-item" type="button" data-pick-profile data-name="李某某" data-meta="坤造｜1990-09-11 未时｜同事" data-keywords="李某某 同事 1990 事业 跳槽">
-              <strong>李某某</strong>
-              <span>坤造｜1990-09-11 未时｜同事</span>
-            </button>
-            <button class="picker-item" type="button" data-pick-profile data-name="赵某某" data-meta="坤造｜1979-03-28 午时｜家人" data-keywords="赵某某 家人 1979 健康 财运">
-              <strong>赵某某</strong>
-              <span>坤造｜1979-03-28 午时｜家人</span>
-            </button>
-            <button class="picker-item" type="button" data-pick-profile data-name="周某某" data-meta="乾造｜2001-06-05 未知｜朋友" data-keywords="周某某 朋友 2001 学业 选择">
-              <strong>周某某</strong>
-              <span>乾造｜2001-06-05｜朋友</span>
-            </button>
+          <div class="picker-list" id="profilePickerList"></div>
+        </section>
+      </div>
+
+      <div class="modal-backdrop profile-actions-backdrop" id="profileActionsModal" hidden>
+        <section class="modal-card profile-actions-sheet" role="dialog" aria-modal="true" aria-labelledby="profileActionsTitle">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">档案操作</p>
+              <h2 id="profileActionsTitle">档案</h2>
+            </div>
+            <button type="button" id="closeProfileActions" aria-label="关闭">×</button>
           </div>
+          <div class="profile-action-list">
+            <button type="button" id="editProfileAction">编辑档案</button>
+            <button type="button" id="updateProfileReportAction" hidden>更新分析报告</button>
+            <button type="button" id="saveProfileReportAction">保存分析报告</button>
+            <button class="danger" type="button" id="deleteProfileAction">删除档案</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="modal-backdrop" id="conversationPickerModal" hidden>
+        <section class="modal-card conversation-picker-sheet" role="dialog" aria-modal="true" aria-labelledby="conversationPickerTitle">
+          <div class="modal-head">
+            <h2 id="conversationPickerTitle">历史会话</h2>
+            <button type="button" id="closeConversationPicker" aria-label="关闭">×</button>
+          </div>
+          <div class="conversation-picker-list" id="conversationPickerList"></div>
+        </section>
+      </div>
+
+      <div class="modal-backdrop date-picker-backdrop" id="datePickerModal" hidden>
+        <section class="date-picker-modal" role="dialog" aria-modal="true" aria-labelledby="datePickerTitle">
+          <div class="date-picker-toolbar">
+            <button class="date-picker-cancel" type="button" id="closeDatePicker">取消</button>
+            <div>
+              <h2 id="datePickerTitle">出生日期</h2>
+              <p id="datePickerValue">1990年01月01日</p>
+            </div>
+            <button class="date-picker-confirm" type="button" id="confirmDatePicker">确定</button>
+          </div>
+          <div class="date-picker-stage">
+            <div class="date-picker-selection" aria-hidden="true"></div>
+            <div class="date-picker-wheels" aria-label="出生日期选择器">
+              <div class="date-wheel-column">
+                <span>年</span>
+                <div class="date-wheel" id="dateYearWheel"></div>
+              </div>
+              <div class="date-wheel-column">
+                <span>月</span>
+                <div class="date-wheel" id="dateMonthWheel"></div>
+              </div>
+              <div class="date-wheel-column">
+                <span>日</span>
+                <div class="date-wheel" id="dateDayWheel"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="modal-backdrop option-picker-backdrop" id="optionPickerModal" hidden>
+        <section class="option-picker-modal" role="dialog" aria-modal="true" aria-labelledby="optionPickerTitle">
+          <div class="option-picker-toolbar">
+            <button class="option-picker-cancel" type="button" id="closeOptionPicker">取消</button>
+            <div>
+              <h2 id="optionPickerTitle">选择</h2>
+              <p id="optionPickerSubtitle"></p>
+            </div>
+            <span></span>
+          </div>
+          <div class="option-picker-search" id="optionPickerSearchWrap" hidden>
+            <input id="optionPickerSearch" type="text" placeholder="搜索城市" />
+          </div>
+          <div class="option-picker-list" id="optionPickerList"></div>
         </section>
       </div>
 
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
     </div>
 
-    <script src="./app.js"></script>
+    <div class="account-modal" id="loginLogsModal" hidden>
+      <section class="account-sheet" role="dialog" aria-modal="true" aria-labelledby="loginLogsTitle">
+        <header>
+          <div>
+            <p class="eyebrow">账户安全</p>
+            <h2 id="loginLogsTitle">登录日志</h2>
+          </div>
+          <button class="sheet-close" type="button" id="closeLoginLogs" aria-label="关闭">关闭</button>
+        </header>
+        <p class="sheet-note">地区根据登录 IP 推断，使用移动网络、代理或 VPN 时可能不准确。</p>
+        <p class="sheet-status" id="loginLogsStatus" role="status"></p>
+        <div class="login-log-list" id="loginLogsList"></div>
+      </section>
+    </div>
+
+    <div class="account-modal" id="passwordModal" hidden>
+      <section class="account-sheet password-sheet" role="dialog" aria-modal="true" aria-labelledby="passwordTitle">
+        <header>
+          <div>
+            <p class="eyebrow">账户安全</p>
+            <h2 id="passwordTitle">修改密码</h2>
+          </div>
+          <button class="sheet-close" type="button" id="closePasswordModal" aria-label="关闭">关闭</button>
+        </header>
+        <form id="passwordForm" autocomplete="off">
+          <label class="auth-field">
+            <span>新密码</span>
+            <input id="newPassword" type="password" autocomplete="new-password" />
+          </label>
+          <label class="auth-field">
+            <span>再次输入</span>
+            <input id="confirmPassword" type="password" autocomplete="new-password" />
+          </label>
+          <p class="auth-status" id="passwordStatus" role="status"></p>
+          <button class="primary-button" type="submit" id="passwordSubmit">确认修改</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="account-modal" id="legacyMigrationModal" hidden>
+      <section class="account-sheet password-sheet" role="dialog" aria-modal="true" aria-labelledby="legacyMigrationTitle">
+        <header>
+          <div>
+            <p class="eyebrow">一次性迁移</p>
+            <h2 id="legacyMigrationTitle">迁移本机旧档案</h2>
+          </div>
+          <button class="sheet-close" type="button" id="closeLegacyMigration" aria-label="关闭">关闭</button>
+        </header>
+        <p class="sheet-note">检测到 <strong id="legacyMigrationPreviewCount">0</strong> 份旧档案。确认后上传到当前管理员的云端空间；失败不会删除本机原数据。</p>
+        <button class="primary-button" type="button" id="confirmLegacyMigration">确认迁移</button>
+      </section>
+    </div>
+
+    <div class="account-modal" id="reportImportModal" hidden>
+      <section class="account-sheet import-sheet" role="dialog" aria-modal="true" aria-labelledby="reportImportTitle">
+        <header>
+          <div>
+            <p class="eyebrow">报告备份</p>
+            <h2 id="reportImportTitle">导入预览</h2>
+          </div>
+          <button class="sheet-close" type="button" id="closeReportImport" aria-label="关闭">关闭</button>
+        </header>
+        <p class="sheet-note" id="reportImportStatus">正在读取备份…</p>
+        <div class="import-preview-list" id="reportImportPreview"></div>
+        <label class="import-conflict-field">
+          <span>遇到已有档案时</span>
+          <select id="reportImportConflict">
+            <option value="preserve">保留现有档案，不导入冲突项</option>
+            <option value="replace">使用导入版本覆盖现有档案</option>
+            <option value="copy">另存为新档案</option>
+          </select>
+        </label>
+        <button class="primary-button" type="button" id="confirmReportImport">确认恢复</button>
+      </section>
+    </div>
+
+    <script src="./cloud-client.js?v=2026110306"></script>
+    <script src="./cloud-data.js?v=2026110306"></script>
+    <script src="./consultation-client.js?v=2026110306"></script>
+    <script src="./report-utils.js?v=2026110306"></script>
+    <script src="./report-client.js?v=2026110306"></script>
+    <script src="./app.js?v=product-32"></script>
+    <script src="./consultation-ui.js?v=2026110306"></script>
+    <script src="./report-ui.js?v=2026110306"></script>
+    <script src="./auth-ui.js?v=2026110306"></script>
+    <script src="./account-ui.js?v=2026110306"></script>
   </body>
 </html>

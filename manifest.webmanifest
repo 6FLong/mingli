@@ -1,18 +1,26 @@
 {
   "name": "命理",
   "short_name": "命理",
-  "description": "本地优先的命理档案与问事分析工具",
+  "id": "./",
+  "description": "个人使用的云端命理咨询工作台",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#f1e4fb",
+  "theme_color": "#e5f1ef",
   "orientation": "portrait",
   "lang": "zh-CN",
   "icons": [
     {
-      "src": "./icon.svg",
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
