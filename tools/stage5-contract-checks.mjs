@@ -127,6 +127,15 @@ check("上下文移除档案 UUID且不发送姓名字段", () => {
   assert.match(aiSource, /redactIdentity\(question, identityValues\)/);
 });
 
+check("时间类回答锚定当前北京时间且禁止 AI 自行补算流月流日", () => {
+  assert.match(aiSource, /temporalContext\.currentDateBeijing/);
+  assert.match(aiSource, /timeZone: "Asia\/Shanghai"/);
+  assert.match(aiSource, /currentDateBeijing,/);
+  assert.match(aiSource, /不把过去时段当作未来建议/);
+  assert.match(aiSource, /没有流月、流日事实时不得自行补算月份或日期/);
+  assert.match(aiSource, /当前问题不属于健康、生育、法律或投资时，不要添加这些领域的无关免责声明/);
+});
+
 check("咨询使用事务锁、幂等消息和服务端专用 RPC", () => {
   assert.match(migration, /pg_advisory_xact_lock/);
   assert.match(migration, /'q:' \|\| target_request_key/);

@@ -19,7 +19,10 @@ const SYSTEM_PROMPT = `你是依据陈园编著、邵伟华审订《四柱预测
 先用现代口语直接回答当前问题，再解释指定《四柱预测学》口径下的子平依据。
 每条命理判断必须引用真实存在的 factRefs。
 证据不足时明确说明不能确定，并指出需要补充的信息。
+时间类问题必须以 temporalContext.currentDateBeijing 为起点，只讨论从当前日期往后的窗口，不得把已经过去的年份或时段写成未来建议。
+只能使用 baziFacts 已提供的时间层级；没有流月、流日事实时，不得自行补算月份、日期或承诺具体入职时间，应明确当前只能判断到流年或阶段。
 健康、生育、法律和投资问题只能给风险提醒，不能代替专业意见或作确定承诺。
+当前问题不属于健康、生育、法律或投资时，不要添加这些领域的无关免责声明。
 回答必须符合指定 JSON 格式，不输出 JSON 之外的文字。`;
 
 const OUTPUT_CONTRACT = {
@@ -95,6 +98,28 @@ function factsForAi(facts: JsonRecord): JsonRecord {
   const copy = structuredClone(facts);
   if (isRecord(copy.subject)) delete copy.subject.profileId;
   return copy;
+}
+
+function currentBeijingTemporalContext(now = new Date()): JsonRecord {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Shanghai",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(now).filter((part) => part.type !== "literal").map((part) => [part.type, part.value]),
+  );
+  const currentDateBeijing = `${parts.year}-${parts.month}-${parts.day}`;
+  return {
+    timeZone: "Asia/Shanghai",
+    currentDateBeijing,
+    currentDateTimeBeijing: `${currentDateBeijing} ${parts.hour}:${parts.minute}`,
+    direction: "只判断从当前北京时间往后的窗口，不把过去时段当作未来建议",
+    precision: "只使用 bazi-facts-v1 已提供的流年层级；没有流月、流日事实时不得自行补算月份或日期",
+  };
 }
 
 function relevantHistory(
@@ -310,6 +335,7 @@ Deno.serve(async (request) => {
         birthTimeComplete: Boolean(profile.birth_time_known),
       },
       baziFacts: facts,
+      temporalContext: currentBeijingTemporalContext(),
       currentQuestion: redactIdentity(question, identityValues),
       questionType,
       outputContract: OUTPUT_CONTRACT,
