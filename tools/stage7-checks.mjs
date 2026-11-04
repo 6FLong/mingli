@@ -188,22 +188,23 @@ try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  await page.route("https://tcqyntzbeinlygvwahav.supabase.co/**", async (route) => {
+  await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    const pathname = url.pathname.replace(/^\/api\/supabase/, "");
     const method = request.method();
-    if (url.pathname === "/functions/v1/auth-login") {
+    if (pathname === "/functions/v1/auth-login") {
       return json(route, { access_token: "token", refresh_token: "refresh", expires_in: 3600, user: { id: ownerId } });
     }
-    if (url.pathname === "/rest/v1/profiles" && method === "GET") return json(route, records);
-    if (url.pathname === "/rest/v1/user_settings" && method === "GET") {
+    if (pathname === "/rest/v1/profiles" && method === "GET") return json(route, records);
+    if (pathname === "/rest/v1/user_settings" && method === "GET") {
       return json(route, [{ owner_id: ownerId, current_profile_id: ids.self }]);
     }
-    if (url.pathname === "/rest/v1/user_settings" && method === "POST") return json(route, [request.postDataJSON()]);
-    if (url.pathname === "/rest/v1/rpc/save_current_chart") {
+    if (pathname === "/rest/v1/user_settings" && method === "POST") return json(route, [request.postDataJSON()]);
+    if (pathname === "/rest/v1/rpc/save_current_chart") {
       return json(route, [{ chart_id: "30000000-0000-4000-8000-000000000001", reused: true }]);
     }
-    if (url.pathname === "/functions/v1/profile-delete") {
+    if (pathname === "/functions/v1/profile-delete") {
       const body = request.postDataJSON();
       deleteRequests.push(body);
       const attempts = (deleteAttempts.get(body.profileId) || 0) + 1;

@@ -5,6 +5,29 @@
   const SESSION_KEY = "mingli.auth.session.v1";
   const REFRESH_MARGIN_MS = 60 * 1000;
 
+  function normalizeCloudBaseUrl(value) {
+    try {
+      const url = new URL(String(value || ""));
+      const pathname = url.pathname.replace(/\/+$/, "");
+      const hostIsValid = /^[a-z0-9.-]+$/i.test(url.hostname);
+      const pathIsValid = pathname === "" || pathname === "/api/supabase";
+      if (
+        url.protocol !== "https:" ||
+        !hostIsValid ||
+        !pathIsValid ||
+        url.username ||
+        url.password ||
+        url.search ||
+        url.hash
+      ) return "";
+      return `${url.origin}${pathname}`;
+    } catch {
+      return "";
+    }
+  }
+
+  const cloudBaseUrl = normalizeCloudBaseUrl(config.supabaseUrl);
+
   class CloudError extends Error {
     constructor(message, options = {}) {
       super(message);
@@ -16,7 +39,7 @@
   }
 
   function assertConfig() {
-    if (!/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(config.supabaseUrl || "")) {
+    if (!cloudBaseUrl) {
       throw new CloudError("云端地址未配置", { code: "config_missing" });
     }
     if (!String(config.supabasePublishableKey || "").startsWith("sb_publishable_")) {
@@ -26,7 +49,7 @@
 
   async function fetchCloud(path, options = {}) {
     try {
-      return await fetch(`${config.supabaseUrl}${path}`, options);
+      return await fetch(`${cloudBaseUrl}${path}`, options);
     } catch (error) {
       throw new CloudError("无法连接云端服务，请检查网络或切换网络后重试", {
         code: "network_unreachable",

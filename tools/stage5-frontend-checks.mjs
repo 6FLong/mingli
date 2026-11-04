@@ -141,33 +141,34 @@ try {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
-  await page.route("https://tcqyntzbeinlygvwahav.supabase.co/**", async (route) => {
+  await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    const pathname = url.pathname.replace(/^\/api\/supabase/, "");
     const method = request.method();
-    if (url.pathname === "/functions/v1/auth-login") {
+    if (pathname === "/functions/v1/auth-login") {
       return json(route, { access_token: "test-token", refresh_token: "test-refresh", expires_in: 3600, user: { id: ownerId } });
     }
-    if (url.pathname === "/rest/v1/profiles" && method === "GET") return json(route, profiles);
-    if (url.pathname === "/rest/v1/user_settings" && method === "GET") {
+    if (pathname === "/rest/v1/profiles" && method === "GET") return json(route, profiles);
+    if (pathname === "/rest/v1/user_settings" && method === "GET") {
       return json(route, [{ owner_id: ownerId, current_profile_id: profileOne, last_consulted_profile_id: null, preferences: {} }]);
     }
-    if (url.pathname === "/rest/v1/user_settings" && method === "POST") return json(route, [request.postDataJSON()]);
-    if (url.pathname === "/rest/v1/rpc/save_current_chart") return json(route, [{ chart_id: chartId, chart_version: 1, reused: true }]);
-    if (url.pathname === "/rest/v1/conversations" && method === "GET") {
+    if (pathname === "/rest/v1/user_settings" && method === "POST") return json(route, [request.postDataJSON()]);
+    if (pathname === "/rest/v1/rpc/save_current_chart") return json(route, [{ chart_id: chartId, chart_version: 1, reused: true }]);
+    if (pathname === "/rest/v1/conversations" && method === "GET") {
       const filter = url.searchParams.get("profile_id");
       if (filter === `eq.${profileOne}` && answered) {
         return json(route, [{ id: conversationId, profile_id: profileOne, chart_id: chartId, title: "新工作机会", status: "active", last_message_at: "2026-11-03T01:00:01.000Z", created_at: "2026-11-03T01:00:00.000Z" }]);
       }
       return json(route, []);
     }
-    if (url.pathname === "/rest/v1/messages" && method === "GET") return json(route, answered ? messages : []);
-    if (url.pathname === "/functions/v1/ai-consult") {
+    if (pathname === "/rest/v1/messages" && method === "GET") return json(route, answered ? messages : []);
+    if (pathname === "/functions/v1/ai-consult") {
       sentPayload = request.postDataJSON();
       answered = true;
       return json(route, { conversationId, assistantMessageId: messages[1].id, status: "complete", result: aiResult, consultedAt: "2026-11-03T01:00:01.000Z", reused: false });
     }
-    if (url.pathname === "/rest/v1/profiles" && ["POST", "PATCH", "DELETE"].includes(method)) return json(route, []);
+    if (pathname === "/rest/v1/profiles" && ["POST", "PATCH", "DELETE"].includes(method)) return json(route, []);
     return json(route, []);
   });
 

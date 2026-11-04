@@ -51,14 +51,15 @@ try {
   });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 
-  await page.route("https://tcqyntzbeinlygvwahav.supabase.co/**", async (route) => {
+  await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    const pathname = url.pathname.replace(/^\/api\/supabase/, "");
     const method = request.method();
     const body = request.postDataJSON?.() || null;
-    requests.push({ method, pathname: url.pathname, search: url.search, body });
+    requests.push({ method, pathname, search: url.search, body });
 
-    if (url.pathname === "/functions/v1/auth-login") {
+    if (pathname === "/functions/v1/auth-login") {
       return response(route, 200, {
         access_token: "test-access-token",
         refresh_token: "test-refresh-token",
@@ -66,12 +67,12 @@ try {
         user: { id: userId },
       });
     }
-    if (url.pathname === "/rest/v1/profiles" && method === "GET") return response(route, 200, []);
-    if (url.pathname === "/rest/v1/profiles" && method === "PATCH") return response(route, 200, []);
-    if (url.pathname === "/rest/v1/profiles" && method === "POST") return response(route, 201, body);
-    if (url.pathname === "/rest/v1/user_settings" && method === "GET") return response(route, 200, []);
-    if (url.pathname === "/rest/v1/user_settings" && method === "POST") return response(route, 201, [body]);
-    if (url.pathname === "/rest/v1/rpc/save_current_chart") {
+    if (pathname === "/rest/v1/profiles" && method === "GET") return response(route, 200, []);
+    if (pathname === "/rest/v1/profiles" && method === "PATCH") return response(route, 200, []);
+    if (pathname === "/rest/v1/profiles" && method === "POST") return response(route, 201, body);
+    if (pathname === "/rest/v1/user_settings" && method === "GET") return response(route, 200, []);
+    if (pathname === "/rest/v1/user_settings" && method === "POST") return response(route, 201, [body]);
+    if (pathname === "/rest/v1/rpc/save_current_chart") {
       return response(route, 200, [{ chart_id: "22222222-2222-4222-8222-222222222222", chart_version: 1, reused: false }]);
     }
     return response(route, 200, []);

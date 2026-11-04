@@ -133,25 +133,26 @@ try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  await page.route("https://tcqyntzbeinlygvwahav.supabase.co/**", async (route) => {
+  await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    const pathname = url.pathname.replace(/^\/api\/supabase/, "");
     const method = request.method();
-    if (url.pathname === "/functions/v1/auth-login") return json(route, { access_token: "token", refresh_token: "refresh", expires_in: 3600, user: { id: ownerId } });
-    if (url.pathname === "/rest/v1/profiles" && method === "GET") return json(route, [profile]);
-    if (url.pathname === "/rest/v1/bazi_charts" && method === "GET") return json(route, [chart]);
-    if (url.pathname === "/rest/v1/client_summaries" && method === "GET") return json(route, [summary]);
-    if (url.pathname === "/rest/v1/reports" && method === "GET") return json(route, [report]);
-    if (url.pathname === "/rest/v1/conversations" && method === "GET") return json(route, [conversation]);
-    if (url.pathname === "/rest/v1/messages" && method === "GET") return json(route, messages);
-    if (url.pathname === "/rest/v1/user_settings" && method === "GET") return json(route, [{ owner_id: ownerId, current_profile_id: profileId }]);
-    if (url.pathname === "/rest/v1/user_settings" && method === "POST") return json(route, [request.postDataJSON()]);
-    if (url.pathname === "/rest/v1/rpc/save_current_chart") return json(route, [{ chart_id: chartId, reused: true }]);
-    if (url.pathname.startsWith("/storage/v1/object/reports/") && method === "POST") {
-      storageWrites.push({ path: url.pathname, headers: request.headers(), size: request.postDataBuffer()?.length || 0 });
-      return json(route, { Key: url.pathname });
+    if (pathname === "/functions/v1/auth-login") return json(route, { access_token: "token", refresh_token: "refresh", expires_in: 3600, user: { id: ownerId } });
+    if (pathname === "/rest/v1/profiles" && method === "GET") return json(route, [profile]);
+    if (pathname === "/rest/v1/bazi_charts" && method === "GET") return json(route, [chart]);
+    if (pathname === "/rest/v1/client_summaries" && method === "GET") return json(route, [summary]);
+    if (pathname === "/rest/v1/reports" && method === "GET") return json(route, [report]);
+    if (pathname === "/rest/v1/conversations" && method === "GET") return json(route, [conversation]);
+    if (pathname === "/rest/v1/messages" && method === "GET") return json(route, messages);
+    if (pathname === "/rest/v1/user_settings" && method === "GET") return json(route, [{ owner_id: ownerId, current_profile_id: profileId }]);
+    if (pathname === "/rest/v1/user_settings" && method === "POST") return json(route, [request.postDataJSON()]);
+    if (pathname === "/rest/v1/rpc/save_current_chart") return json(route, [{ chart_id: chartId, reused: true }]);
+    if (pathname.startsWith("/storage/v1/object/reports/") && method === "POST") {
+      storageWrites.push({ path: pathname, headers: request.headers(), size: request.postDataBuffer()?.length || 0 });
+      return json(route, { Key: pathname });
     }
-    if (url.pathname === "/rest/v1/reports" && method === "POST") {
+    if (pathname === "/rest/v1/reports" && method === "POST") {
       reportWrites.push(request.postDataJSON());
       return json(route, [request.postDataJSON()], 201);
     }

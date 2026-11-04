@@ -27,7 +27,7 @@ check("公开前端配置可执行且只包含公开连接信息", () => {
   const context = { window: {} };
   vm.runInNewContext(appConfigSource, context, { filename: "app-config.js" });
   const config = context.window.MINGLI_CONFIG;
-  assert.equal(config.supabaseUrl, "https://tcqyntzbeinlygvwahav.supabase.co");
+  assert.equal(config.supabaseUrl, "https://resonant-brioche-af680c.netlify.app/api/supabase");
   assert.match(config.supabasePublishableKey, /^sb_publishable_/);
   assert.equal(config.databaseSchemaVersion, "2026110407");
   assert.equal(Object.isFrozen(config), true);

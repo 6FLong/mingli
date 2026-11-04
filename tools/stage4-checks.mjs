@@ -82,18 +82,19 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 844 } });
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
-    await page.route("https://tcqyntzbeinlygvwahav.supabase.co/**", async (route) => {
+    await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", async (route) => {
       const url = new URL(route.request().url());
+      const pathname = url.pathname.replace(/^\/api\/supabase/, "");
       const method = route.request().method();
       let body = [];
-      if (url.pathname === "/functions/v1/auth-login") {
+      if (pathname === "/functions/v1/auth-login") {
         body = {
           access_token: "test-access-token",
           refresh_token: "test-refresh-token",
           expires_in: 3600,
           user: { id: "11111111-1111-4111-8111-111111111111" },
         };
-      } else if (url.pathname === "/rest/v1/user_settings" && method === "POST") {
+      } else if (pathname === "/rest/v1/user_settings" && method === "POST") {
         body = [route.request().postDataJSON()];
       }
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });

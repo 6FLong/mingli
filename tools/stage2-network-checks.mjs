@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const source = fs.readFileSync(path.join(root, "cloud-client.js"), "utf8");
 
-function createClient(fetchImpl, storedSession = null) {
+function createClient(fetchImpl, storedSession = null, supabaseUrl = "https://project.example.com") {
   const values = new Map();
   if (storedSession) values.set("mingli.auth.session.v1", JSON.stringify(storedSession));
   const localStorage = {
@@ -17,11 +17,11 @@ function createClient(fetchImpl, storedSession = null) {
   };
   const window = {
     MINGLI_CONFIG: {
-      supabaseUrl: "https://project.example.com",
+      supabaseUrl,
       supabasePublishableKey: "sb_publishable_test",
     },
   };
-  vm.runInNewContext(source, { window, localStorage, fetch: fetchImpl, Date, JSON, Object, Error, String, Number });
+  vm.runInNewContext(source, { window, localStorage, fetch: fetchImpl, Date, JSON, Object, Error, String, Number, URL });
   return { client: window.MingliCloud.client, localStorage };
 }
 
@@ -87,6 +87,41 @@ await check("令牌刷新网络失败同样保留可重试会话", async () => {
   }, stored);
   await assert.rejects(() => client.accessToken(), (error) => error.code === "network_unreachable");
   assert.equal(client.session.refresh_token, "refresh");
+});
+
+await check("固定中转路径会完整拼接云端接口地址", async () => {
+  const requests = [];
+  const { client } = createClient(async (url) => {
+    requests.push(url);
+    return {
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({
+        access_token: "access",
+        refresh_token: "refresh",
+        expires_in: 3600,
+        user: { id: "11111111-1111-4111-8111-111111111111" },
+      }),
+    };
+  }, null, "https://relay.netlify.app/api/supabase");
+  await client.login("account", "password");
+  assert.equal(requests[0], "https://relay.netlify.app/api/supabase/functions/v1/auth-login");
+});
+
+await check("云端地址拒绝非 HTTPS、任意路径及凭据参数", async () => {
+  for (const value of [
+    "http://relay.netlify.app/api/supabase",
+    "https://relay.netlify.app/other",
+    "https://user:password@relay.netlify.app/api/supabase",
+    "https://relay.netlify.app/api/supabase?target=other",
+    "https://relay.netlify.app/api/supabase#other",
+  ]) {
+    assert.throws(
+      () => createClient(async () => undefined, null, value),
+      (error) => error.code === "config_missing",
+      value,
+    );
+  }
 });
 
 for (const result of checks) {
