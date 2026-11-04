@@ -55,6 +55,14 @@ assert.deepEqual(manifest.icons.map((item) => item.src), ["./icon-192.png", "./i
 for (const resource of ["app.js?v=product-39", "icon-192.png", "icon-512.png"]) {
   assert.equal((await fetch(`${baseUrl}${resource}`, { cache: "no-store" })).status, 200, resource);
 }
+const reportClientResponse = await fetch(`${baseUrl}report-client.js?v=product-39`, { cache: "no-store" });
+assert.equal(reportClientResponse.status, 200);
+const reportClientSource = await reportClientResponse.text();
+const exportBody = reportClientSource.match(/async function exportAllProfiles[\s\S]*?async function inspectImportZip/)?.[0] || "";
+assert.match(exportBody, /buildProfilePackage\(profile\.id\)/);
+assert.doesNotMatch(exportBody, /refreshProfileReport\(profile\.id\)/);
+assert.match(exportBody, /导出说明\.txt/);
+assert.match(exportBody, /!manifest\.profiles\.length/);
 assert.equal((await fetch(`${baseUrl}sw.js`, { cache: "no-store" })).status, 404);
 
 await verifyLoginPage(chromium, { executablePath: chromePath }, { viewport: { width: 390, height: 844 } });
@@ -68,4 +76,5 @@ console.log("OK 390px 手机登录页为空、无横向溢出且脚本无错误"
 console.log("OK 1280px Microsoft Edge 登录页为空、无横向溢出且脚本无错误");
 console.log("OK Pixel 5 Android Chrome 参数下登录页触控布局正常");
 console.log("OK iPhone 13 WebKit 参数下登录页布局与脚本正常");
-console.log("\n6 stage-eight Pages checks passed.");
+console.log("OK 线上全部导出使用 product-39 的本地生成与空 ZIP 防护");
+console.log("\n7 stage-eight Pages checks passed.");

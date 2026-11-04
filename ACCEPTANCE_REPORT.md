@@ -18,8 +18,8 @@
 | 范围 | 结果 | 说明 |
 | --- | --- | --- |
 | 本地算法、权限、登录、档案、界面、AI、报告、删除、发布 | 通过 | 135 项 |
-| GitHub Pages 正式资源与登录页 | 通过 | 6 项，覆盖 Chrome 手机宽度、Microsoft Edge、Pixel 5 Android Chrome 参数和 iPhone 13 WebKit 参数 |
-| 合计 | 通过 | 141 项 |
+| GitHub Pages 正式资源与登录页 | 通过 | 7 项，覆盖 Chrome 手机宽度、Microsoft Edge、Pixel 5 Android Chrome 参数、iPhone 13 WebKit 参数和线上全部导出修复 |
+| 合计 | 通过 | 142 项 |
 
 ## 3. PRD 第 14 章逐项审计
 
@@ -44,7 +44,7 @@
 | 14.17 90 天提醒与手动删除 | 自动通过 | 89、90、91 天、本人/家人排除、提醒和取消/失败/重试通过；删除增加 PDF 暂存与失败恢复、部分失败日志。未创建真实测试客户，也未删除本人档案。 |
 | 14.18 页面视觉与移动端交互 | 通过 | 320、390、430、1024、1280px 检查通过；Pixel 5 Android Chrome 参数和 iPhone 13 WebKit 参数均以触控操作完成登录后三视图、三入口及底部弹层；顶部间距、安全区、长内容和无横向溢出通过。 |
 | 14.19 浏览器、部署与可靠性 | 部分通过 | 电脑 Chrome、真实 Microsoft Edge、Pixel 5 Android Chrome 参数、iPhone 13 WebKit 参数、GitHub Pages、Netlify 中转、Wi-Fi/移动网络可达性和失败重试检查通过；WebKit 在 Windows 测试环境中忽略本机证书链差异。管理员已确认真实 iPhone Safari 可以正常使用，但尚未执行 ZIP 导入预览；仍需安卓实体 Chrome 完整流程。 |
-| 14.20 验收数据与发布门槛 | 部分通过 | 正式库未创建测试档案或演示对话，真实验收使用管理员本人档案；`product-39` 共 141 项检查通过，iPhone ZIP 导入预览与安卓实体浏览器尚未覆盖。 |
+| 14.20 验收数据与发布门槛 | 部分通过 | 正式库未创建测试档案或演示对话，真实验收使用管理员本人档案；`product-39` 共 142 项检查通过，iPhone ZIP 导入预览与安卓实体浏览器尚未覆盖。 |
 
 ## 4. 真实数据验收记录
 
