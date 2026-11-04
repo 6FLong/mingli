@@ -55,7 +55,7 @@ const bundledModules =
   process.env.CODEX_NODE_MODULES ||
   "C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules";
 const require = createRequire(path.join(bundledModules, "package.json"));
-const { chromium } = require("playwright");
+const { chromium, devices, webkit } = require("playwright");
 const port = 4184;
 const baseUrl = `http://127.0.0.1:${port}/`;
 const server = spawn(process.execPath, ["tools/dev-server.mjs"], {
@@ -76,6 +76,65 @@ async function waitForServer() {
   throw new Error("本地测试服务器未启动");
 }
 
+async function mockCloud(route) {
+  const url = new URL(route.request().url());
+  const pathname = url.pathname.replace(/^\/api\/supabase/, "");
+  const method = route.request().method();
+  let body = [];
+  if (pathname === "/functions/v1/auth-login") {
+    body = {
+      access_token: "test-access-token",
+      refresh_token: "test-refresh-token",
+      expires_in: 3600,
+      user: { id: "11111111-1111-4111-8111-111111111111" },
+    };
+  } else if (pathname === "/rest/v1/user_settings" && method === "POST") {
+    body = [route.request().postDataJSON()];
+  }
+  await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+}
+
+async function verifyMobileBusinessFlow(browserType, launchOptions, contextOptions, name) {
+  const deviceBrowser = await browserType.launch({ headless: true, ...launchOptions });
+  try {
+    const page = await deviceBrowser.newPage(contextOptions);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+    await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", mockCloud);
+    await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+    await page.locator("#loginAccount").fill("device-flow-test");
+    await page.locator("#loginPassword").fill("device-flow-test");
+    await page.locator("#loginSubmit").click();
+    await page.locator("#businessApp").waitFor({ state: "visible" });
+
+    await page.locator('[data-home-view="chart"]').tap();
+    assert.equal(await page.locator('[data-home-panel="chart"]').isVisible(), true);
+    await page.locator('[data-home-view="report"]').tap();
+    assert.equal(await page.locator('[data-home-panel="report"]').isVisible(), true);
+    await page.locator('[data-go="profiles"]').last().tap();
+    assert.equal(await page.locator('[data-screen="profiles"]').isVisible(), true);
+    await page.locator('[data-go="mine"]').last().tap();
+    assert.equal(await page.locator('[data-screen="mine"]').isVisible(), true);
+    await page.locator("#openLoginLogs").tap();
+    await page.locator("#loginLogsModal").waitFor({ state: "visible" });
+
+    const layout = await page.evaluate(() => ({
+      bodyWidth: document.body.scrollWidth,
+      viewportWidth: document.documentElement.clientWidth,
+      navBottom: document.querySelector(".tabbar").getBoundingClientRect().bottom,
+      viewportHeight: document.documentElement.clientHeight,
+    }));
+    assert.ok(layout.bodyWidth <= layout.viewportWidth, `${name} 页面存在横向溢出`);
+    assert.ok(Math.abs(layout.navBottom - layout.viewportHeight) <= 1, `${name} 底部导航未贴合视口`);
+    assert.deepEqual(pageErrors, [], `${name} 页面脚本报错`);
+    checks.push({ name: `${name} 登录后三入口、三视图与底部弹层`, ok: true });
+  } catch (error) {
+    checks.push({ name: `${name} 登录后三入口、三视图与底部弹层`, ok: false, error });
+  } finally {
+    await deviceBrowser.close();
+  }
+}
+
 let browser;
 try {
   await waitForServer();
@@ -84,23 +143,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 844 } });
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
-    await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", async (route) => {
-      const url = new URL(route.request().url());
-      const pathname = url.pathname.replace(/^\/api\/supabase/, "");
-      const method = route.request().method();
-      let body = [];
-      if (pathname === "/functions/v1/auth-login") {
-        body = {
-          access_token: "test-access-token",
-          refresh_token: "test-refresh-token",
-          expires_in: 3600,
-          user: { id: "11111111-1111-4111-8111-111111111111" },
-        };
-      } else if (pathname === "/rest/v1/user_settings" && method === "POST") {
-        body = [route.request().postDataJSON()];
-      }
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
-    });
+    await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", mockCloud);
     await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
     await page.locator("#loginAccount").fill("layout-test");
     await page.locator("#loginPassword").fill("layout-test");
@@ -150,6 +193,18 @@ try {
     await page.close();
   }
   checks.push({ name: "320px 至 1024px 浏览器切换、弹层对齐与布局无溢出", ok: true });
+  await verifyMobileBusinessFlow(
+    chromium,
+    { executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe" },
+    { ...devices["Pixel 5"] },
+    "Pixel 5 Android Chrome 参数",
+  );
+  await verifyMobileBusinessFlow(
+    webkit,
+    {},
+    { ...devices["iPhone 13"] },
+    "iPhone 13 WebKit 参数",
+  );
 } catch (error) {
   checks.push({ name: "320px 至 1024px 浏览器切换、弹层对齐与布局无溢出", ok: false, error });
 } finally {
