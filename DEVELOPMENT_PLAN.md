@@ -350,7 +350,7 @@
 - [x] 运行 Edge Function 身份、输入、输出和幂等检查。
 - [x] 运行前端构建、静态资源和敏感信息扫描。
 
-自动验证结果：`product-38` 本地与中转共 127 项通过；发布后需执行 GitHub Pages 3 项线上检查。真实登录发现并修复服务端角色缺少 PostgREST 表权限、登录地区记录为中转节点、桌面登录日志弹层超出 APP、AI 时间窗口未以当前日期起算、报告关系对象显示为 JSON、删除档案时 Storage 与数据库可能出现部分完成六项问题；迁移已应用至 `202611040009`，弹层已在 320、390、430 和 1024px 视口验证。
+自动验证结果：`product-38` 本地与中转共 127 项、GitHub Pages 3 项，总计 130 项通过。真实登录发现并修复服务端角色缺少 PostgREST 表权限、登录地区记录为中转节点、桌面登录日志弹层超出 APP、AI 时间窗口未以当前日期起算、报告关系对象显示为 JSON、删除档案时 Storage 与数据库可能出现部分完成六项问题；迁移已应用至 `202611040009`，弹层已在 320、390、430 和 1024px 视口验证。
 
 ### 10.2 端到端验证
 
@@ -372,7 +372,7 @@
 
 中转验证结果：`https://resonant-brioche-af680c.netlify.app/api/supabase` 已公开；GitHub Pages 来源的预检为 204、Supabase Auth 配置为 200、登录函数返回正常业务响应，陌生来源为 403。中转不保存服务端密钥，只转发固定项目的 Auth、REST、Storage 和 Edge Functions 路径。
 
-发布记录：前端 `product-38`，命盘格式 `bazi-facts-v1`，报告格式 `mingli-report-v1`，备份格式 `mingli-backup-v1`，数据库迁移 `202611040009`，`ai-consult` 版本 3，`profile-delete` 版本 3。GitHub Pages 正式资源、Manifest、图标、无 Service Worker、手机登录页及本人真实数据主流程在发布后重新冒烟。
+发布记录：前端 `product-38`，命盘格式 `bazi-facts-v1`，报告格式 `mingli-report-v1`，备份格式 `mingli-backup-v1`，数据库迁移 `202611040009`，`ai-consult` 版本 3，`profile-delete` 版本 3。GitHub Pages 正式资源、Manifest、图标、无 Service Worker 和 390px 手机登录页已通过发布后冒烟；管理员本人真实数据主流程沿用同一云端数据版本。
 
 ### 10.4 最终审计
 
