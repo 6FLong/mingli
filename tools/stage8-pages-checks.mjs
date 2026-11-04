@@ -7,16 +7,18 @@ const bundledModules =
   process.env.CODEX_NODE_MODULES ||
   "C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules";
 const require = createRequire(path.join(bundledModules, "package.json"));
-const { chromium } = require("playwright");
+const { chromium, devices, webkit } = require("playwright");
 const baseUrl = "https://6flong.github.io/mingli/";
 const chromePath = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 const edgePath = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
 
-async function verifyLoginPage(executablePath, viewport) {
-  assert.equal(fs.existsSync(executablePath), true, `${executablePath} 不存在`);
-  const browser = await chromium.launch({ headless: true, executablePath });
+async function verifyLoginPage(browserType, launchOptions, contextOptions) {
+  if (launchOptions.executablePath) {
+    assert.equal(fs.existsSync(launchOptions.executablePath), true, `${launchOptions.executablePath} 不存在`);
+  }
+  const browser = await browserType.launch({ headless: true, ...launchOptions });
   try {
-    const page = await browser.newPage({ viewport });
+    const page = await browser.newPage(contextOptions);
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     const response = await page.goto(`${baseUrl}?release=product-38`, { waitUntil: "domcontentloaded" });
@@ -55,11 +57,15 @@ for (const resource of ["app.js?v=product-38", "icon-192.png", "icon-512.png"]) 
 }
 assert.equal((await fetch(`${baseUrl}sw.js`, { cache: "no-store" })).status, 404);
 
-await verifyLoginPage(chromePath, { width: 390, height: 844 });
-await verifyLoginPage(edgePath, { width: 1280, height: 800 });
+await verifyLoginPage(chromium, { executablePath: chromePath }, { viewport: { width: 390, height: 844 } });
+await verifyLoginPage(chromium, { executablePath: edgePath }, { viewport: { width: 1280, height: 800 } });
+await verifyLoginPage(chromium, { executablePath: chromePath }, { ...devices["Pixel 5"] });
+await verifyLoginPage(webkit, {}, { ...devices["iPhone 13"], ignoreHTTPSErrors: true });
 
 console.log("OK GitHub Pages 已发布 product-38 正式资源");
 console.log("OK 线上 Manifest、图标与无 Service Worker 状态正确");
 console.log("OK 390px 手机登录页为空、无横向溢出且脚本无错误");
 console.log("OK 1280px Microsoft Edge 登录页为空、无横向溢出且脚本无错误");
-console.log("\n4 stage-eight Pages checks passed.");
+console.log("OK Pixel 5 Android Chrome 参数下登录页触控布局正常");
+console.log("OK iPhone 13 WebKit 参数下登录页布局与脚本正常");
+console.log("\n6 stage-eight Pages checks passed.");
