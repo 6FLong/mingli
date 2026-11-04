@@ -90,6 +90,10 @@ try {
     element.value = "1990-01-02";
     element.dispatchEvent(new Event("change", { bubbles: true }));
   });
+  await page.locator("#profileBirthPlace").evaluate((element) => {
+    element.value = "北京";
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  });
   await page.locator("#saveProfileDraft").click();
 
   await page.locator("#profileModal").waitFor({ state: "hidden" });
@@ -103,6 +107,8 @@ try {
   assert.equal(profileWrites[0].body[0].owner_id, userId);
   assert.equal(profileWrites[0].body[0].relation, "本人");
   assert.equal(profileWrites[0].body[0].birth_date, "1990-01-02");
+  assert.equal(profileWrites[0].body[0].birth_place, "北京");
+  assert.equal(profileWrites[0].body[0].birth_longitude, 116.4);
 
   const chartWrites = requests.filter((item) => item.pathname === "/rest/v1/rpc/save_current_chart");
   assert.equal(chartWrites.length, 1, "新档案必须保存一份结构化命盘");

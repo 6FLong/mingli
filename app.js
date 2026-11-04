@@ -77,7 +77,7 @@ const CHART_STORE = "charts";
 const QUESTION_STORE = "questions";
 const BACKUP_STORE = "backups";
 const CURRENT_PROFILE_KEY = "currentProfileId";
-const APP_VERSION = "product-33";
+const APP_VERSION = "product-34";
 const RULESET_LABEL = "《四柱预测学》子平法口径（未核对处按传统子平法）";
 const RULESET_PROVENANCE = Object.freeze({
   primarySource: {
@@ -920,6 +920,12 @@ function normalizeProfile(profile, index = 0) {
   const gender = normalizeGender(profile || {}, legacy);
   const birthDate = parseDateParts(profile?.birthDate)?.iso || legacy.birthDate || "";
   const birthTime = parseTimeParts(profile?.birthTime)?.label || legacy.birthTime || "";
+  const birthPlace = String(profile?.birthPlace || "");
+  const suppliedLongitude = Number(profile?.birthLongitude);
+  const hasSuppliedLongitude = profile?.birthLongitude !== null && profile?.birthLongitude !== "" && Number.isFinite(suppliedLongitude);
+  const birthLongitude = hasSuppliedLongitude
+    ? suppliedLongitude
+    : BIRTH_PLACE_LONGITUDES[birthPlace] ?? null;
   const rawRelation = String(profile?.relation || legacy.relation || "客户");
   const isSelf = Boolean(profile?.isSelf) || rawRelation === "本人";
   const relation = isSelf ? "本人" : rawRelation === "家人" ? "家人" : "客户";
@@ -936,12 +942,16 @@ function normalizeProfile(profile, index = 0) {
     lunarLeapMonth: Boolean(profile?.lunarLeapMonth),
     birthDate,
     birthTime,
-    birthPlace: String(profile?.birthPlace || ""),
+    birthPlace,
+    birthLongitude,
     relation,
     isSelf,
     note: String(profile?.note || ""),
     recentQuestion: String(profile?.recentQuestion || "暂无问事记录"),
     recentTag: String(profile?.recentTag || "自定义"),
+    lastConsultedAt: Number(profile?.lastConsultedAt || 0) || null,
+    retentionDueAt: Number(profile?.retentionDueAt || 0) || null,
+    retentionExpiredAt: Number(profile?.retentionExpiredAt || 0) || null,
     createdAt: Number(profile?.createdAt || now),
     updatedAt: Number(profile?.updatedAt || now),
   });
@@ -963,11 +973,15 @@ function serializeProfile(profile) {
     birthDate: normalized.birthDate,
     birthTime: normalized.birthTime,
     birthPlace: normalized.birthPlace,
+    birthLongitude: normalized.birthLongitude,
     relation: normalized.relation,
     isSelf: Boolean(normalized.isSelf),
     note: normalized.note,
     recentQuestion: normalized.recentQuestion,
     recentTag: normalized.recentTag,
+    lastConsultedAt: normalized.lastConsultedAt || null,
+    retentionDueAt: normalized.retentionDueAt || null,
+    retentionExpiredAt: normalized.retentionExpiredAt || null,
     createdAt: normalized.createdAt,
     updatedAt: normalized.updatedAt,
     avatar: normalized.avatar,

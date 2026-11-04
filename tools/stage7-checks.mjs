@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const migration = read("supabase/migrations/202611030006_retention_and_delete.sql");
+const hardeningMigration = read("supabase/migrations/202611040007_least_privilege_hardening.sql");
 const consultMigration = read("supabase/migrations/202611030003_ai_consult_transactions.sql");
 const deleteFunction = read("supabase/functions/profile-delete/index.ts");
 const cloudData = read("cloud-data.js");
@@ -82,6 +83,10 @@ check("永久删除仅由管理员函数执行且清理 Storage 与全部业务�
   assert.match(migration, /grant execute on function public\.delete_profile_permanently[\s\S]*?service_role/);
   assert.doesNotMatch(migration, /grant execute on function public\.delete_profile_permanently[\s\S]*?to authenticated/);
   assert.match(cloudData, /\/functions\/v1\/profile-delete/);
+  assert.match(hardeningMigration, /revoke delete on public\.profiles from authenticated/);
+  assert.match(hardeningMigration, /revoke insert, update, delete on public\.messages from authenticated/);
+  assert.match(hardeningMigration, /drop policy if exists reports_storage_delete_admin/);
+  assert.doesNotMatch(hardeningMigration, /grant\s+delete/i);
 });
 
 check("前端明确二次确认删除范围并只给到期客户显示更新报告", () => {
@@ -105,6 +110,7 @@ const ids = {
   day89: "20000000-0000-4000-8000-000000000003",
   day90: "20000000-0000-4000-8000-000000000004",
   day91: "20000000-0000-4000-8000-000000000005",
+  recentlyConsulted: "20000000-0000-4000-8000-000000000006",
 };
 const now = Date.now();
 const iso = (value) => new Date(value).toISOString();
@@ -140,6 +146,12 @@ const records = [
   profile(ids.day89, "客户八十九", "客户", 89),
   profile(ids.day90, "客户九十", "客户", 90),
   profile(ids.day91, "客户九十一", "客户", 91),
+  {
+    ...profile(ids.recentlyConsulted, "近期咨询客户", "客户", 200),
+    last_consulted_at: iso(now - 10 * 86400000),
+    retention_due_at: iso(now + 80 * 86400000),
+    retention_expired_at: null,
+  },
 ];
 const deleteAttempts = new Map();
 const deleteRequests = [];
@@ -216,6 +228,8 @@ try {
   assert.equal(await page.locator(".expired-badge").count(), 2);
   assert.doesNotMatch(await page.locator(`[data-profile-id="${ids.self}"]`).first().innerText(), /已到期/);
   assert.doesNotMatch(await page.locator(`[data-profile-id="${ids.family}"]`).first().innerText(), /已到期/);
+  assert.match(await page.locator(`[data-profile-id="${ids.recentlyConsulted}"]`).first().innerText(), /最后咨询/);
+  assert.doesNotMatch(await page.locator(`[data-profile-id="${ids.recentlyConsulted}"]`).first().innerText(), /已到期/);
 
   await page.locator(`[data-profile-actions][data-profile-id="${ids.day89}"]`).click();
   assert.equal(await page.locator("#updateProfileReportAction").isVisible(), false);
