@@ -11,6 +11,7 @@ const REQUEST_HEADERS = new Set([
   "apikey",
   "authorization",
   "content-type",
+  "origin",
   "prefer",
   "range",
   "x-client-info",

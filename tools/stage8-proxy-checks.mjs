@@ -59,6 +59,7 @@ try {
   assert.equal(upstreamRequests.length, 1);
   assert.equal(upstreamRequests[0].url, "https://tcqyntzbeinlygvwahav.supabase.co/rest/v1/profiles?select=id%2Cname");
   assert.equal(upstreamRequests[0].options.headers.get("authorization"), "Bearer user-token");
+  assert.equal(upstreamRequests[0].options.headers.get("origin"), "https://6flong.github.io");
   assert.equal(upstreamRequests[0].options.headers.get("cookie"), null);
 
   const invalid = await proxy(new Request("https://relay.netlify.app/api/supabase/unknown/path", {
@@ -72,5 +73,5 @@ try {
 
 console.log("OK 中转只允许正式 GitHub Pages 与本地开发来源");
 console.log("OK 中转只访问固定 Supabase 项目及允许的 API 命名空间");
-console.log("OK 身份头按需转发，Cookie 与上游 Set-Cookie 不透传");
+console.log("OK 身份头与浏览器来源按需转发，Cookie 与上游 Set-Cookie 不透传");
 console.log("\n3 stage-eight proxy checks passed.");
