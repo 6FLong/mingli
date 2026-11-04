@@ -67,8 +67,19 @@ check("登录只通过受控 Edge Function 而非前端直接密码认证", () =
 
 check("退出先清理本机会话且不因网络失败残留", () => {
   const logoutBlock = cloudSource.slice(cloudSource.indexOf("async logout()"), cloudSource.indexOf("async request("));
-  assert.ok(logoutBlock.indexOf("this.clearSession()") < logoutBlock.indexOf("fetch("));
+  assert.ok(logoutBlock.indexOf("this.clearSession()") < logoutBlock.indexOf("fetchCloud("));
   assert.match(logoutBlock, /catch\(\(\) => undefined\)/);
+});
+
+check("网络失败统一为中文提示且不会误清除可重试会话", () => {
+  assert.match(cloudSource, /code: "network_unreachable"/);
+  assert.match(cloudSource, /无法连接云端服务，请检查网络或切换网络后重试/);
+  const validationBlock = cloudSource.slice(
+    cloudSource.indexOf("async validateSession()"),
+    cloudSource.indexOf("async logout()"),
+  );
+  assert.match(validationBlock, /response\.status === 401 \|\| response\.status === 403/);
+  assert.doesNotMatch(validationBlock, /catch[\s\S]*this\.clearSession\(\)/);
 });
 
 check("公开前端脚本不包含管理员邮箱、UUID或服务端密钥", () => {

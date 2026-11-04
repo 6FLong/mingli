@@ -66,8 +66,8 @@ check("公开配置只包含可公开值且版本与发布一致", () => {
     "supabasePublishableKey",
     "supabaseUrl",
   ]);
-  assert.match(app, /const APP_VERSION = "product-32"/);
-  assert.match(html, /应用版本<\/span><b>product-32<\/b>/);
+  assert.match(app, /const APP_VERSION = "product-33"/);
+  assert.match(html, /应用版本<\/span><b>product-33<\/b>/);
 });
 
 check("前端不包含管理员身份、服务端密钥或凭据", () => {

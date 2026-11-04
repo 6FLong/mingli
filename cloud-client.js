@@ -16,11 +16,22 @@
   }
 
   function assertConfig() {
-    if (!/^https:\/\/.+\.supabase\.co$/.test(config.supabaseUrl || "")) {
+    if (!/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(config.supabaseUrl || "")) {
       throw new CloudError("云端地址未配置", { code: "config_missing" });
     }
     if (!String(config.supabasePublishableKey || "").startsWith("sb_publishable_")) {
       throw new CloudError("云端公开密钥未配置", { code: "config_missing" });
+    }
+  }
+
+  async function fetchCloud(path, options = {}) {
+    try {
+      return await fetch(`${config.supabaseUrl}${path}`, options);
+    } catch (error) {
+      throw new CloudError("无法连接云端服务，请检查网络或切换网络后重试", {
+        code: "network_unreachable",
+        details: { cause: error?.name || "network_error" },
+      });
     }
   }
 
@@ -79,7 +90,7 @@
     }
 
     async login(account, password) {
-      const response = await fetch(`${config.supabaseUrl}/functions/v1/auth-login`, {
+      const response = await fetchCloud("/functions/v1/auth-login", {
         method: "POST",
         headers: {
           apikey: config.supabasePublishableKey,
@@ -98,7 +109,7 @@
 
       this.refreshPromise = (async () => {
         try {
-          const response = await fetch(`${config.supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
+          const response = await fetchCloud("/auth/v1/token?grant_type=refresh_token", {
             method: "POST",
             headers: {
               apikey: config.supabasePublishableKey,
@@ -109,7 +120,7 @@
           const payload = await parseResponse(response);
           return this.saveSession(payload);
         } catch (error) {
-          this.clearSession();
+          if (error?.status === 400 || error?.status === 401) this.clearSession();
           throw error;
         } finally {
           this.refreshPromise = null;
@@ -128,18 +139,21 @@
       if (!this.session) return false;
       try {
         const token = await this.accessToken();
-        const response = await fetch(`${config.supabaseUrl}/auth/v1/user`, {
+        const response = await fetchCloud("/auth/v1/user", {
           headers: { apikey: config.supabasePublishableKey, Authorization: `Bearer ${token}` },
         });
-        if (!response.ok) throw new Error("invalid session");
-        const user = await response.json();
+        if (response.status === 401 || response.status === 403) {
+          this.clearSession();
+          return false;
+        }
+        const user = await parseResponse(response);
         this.accountIdentifier = String(user.email || "");
         this.session.user = { id: user.id };
         localStorage.setItem(SESSION_KEY, JSON.stringify(this.session));
         return true;
-      } catch {
-        this.clearSession();
-        return false;
+      } catch (error) {
+        if (error?.code === "session_missing") return false;
+        throw error;
       }
     }
 
@@ -147,7 +161,7 @@
       const token = this.session?.access_token;
       this.clearSession();
       if (!token) return;
-      await fetch(`${config.supabaseUrl}/auth/v1/logout`, {
+      await fetchCloud("/auth/v1/logout", {
         method: "POST",
         headers: { apikey: config.supabasePublishableKey, Authorization: `Bearer ${token}` },
       }).catch(() => undefined);
@@ -155,7 +169,7 @@
 
     async request(path, options = {}, retried = false) {
       const token = await this.accessToken();
-      const response = await fetch(`${config.supabaseUrl}${path}`, {
+      const response = await fetchCloud(path, {
         ...options,
         headers: {
           apikey: config.supabasePublishableKey,

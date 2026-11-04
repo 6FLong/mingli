@@ -43,11 +43,17 @@
       return;
     }
     setStatus("正在确认登录状态…");
-    const valid = await cloud.validateSession();
-    if (valid) showBusiness();
-    else {
+    try {
+      const valid = await cloud.validateSession();
+      if (valid) {
+        showBusiness();
+        return;
+      }
       showLogin();
       setStatus("");
+    } catch (error) {
+      showLogin();
+      setStatus(error?.message || "无法连接云端服务，请稍后重试", "error");
     }
   }
 
