@@ -9,7 +9,7 @@ const bundledModules =
   process.env.CODEX_NODE_MODULES ||
   "C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules";
 const require = createRequire(path.join(bundledModules, "package.json"));
-const { chromium } = require("playwright");
+const { chromium, devices, webkit } = require("playwright");
 const port = 4185;
 const baseUrl = `http://127.0.0.1:${port}/`;
 const ownerId = "11111111-1111-4111-8111-111111111111";
@@ -17,8 +17,7 @@ const profileOne = "22222222-2222-4222-8222-222222222222";
 const profileTwo = "33333333-3333-4333-8333-333333333333";
 const conversationId = "44444444-4444-4444-8444-444444444444";
 const chartId = "55555555-5555-4555-8555-555555555555";
-let answered = false;
-let sentPayload = null;
+const desktopState = { answered: false, payloads: [] };
 
 const profiles = [
   {
@@ -127,6 +126,88 @@ async function waitForServer() {
   throw new Error("本地测试服务器未启动");
 }
 
+async function mockAiCloud(route, state) {
+  const request = route.request();
+  const url = new URL(request.url());
+  const pathname = url.pathname.replace(/^\/api\/supabase/, "");
+  const method = request.method();
+  if (pathname === "/functions/v1/auth-login") {
+    return json(route, { access_token: "test-token", refresh_token: "test-refresh", expires_in: 3600, user: { id: ownerId } });
+  }
+  if (pathname === "/rest/v1/profiles" && method === "GET") return json(route, profiles);
+  if (pathname === "/rest/v1/user_settings" && method === "GET") {
+    return json(route, [{ owner_id: ownerId, current_profile_id: profileOne, last_consulted_profile_id: null, preferences: {} }]);
+  }
+  if (pathname === "/rest/v1/user_settings" && method === "POST") return json(route, [request.postDataJSON()]);
+  if (pathname === "/rest/v1/rpc/save_current_chart") return json(route, [{ chart_id: chartId, chart_version: 1, reused: true }]);
+  if (pathname === "/rest/v1/conversations" && method === "GET") {
+    const filter = url.searchParams.get("profile_id");
+    if (filter === `eq.${profileOne}` && state.answered) {
+      return json(route, [{ id: conversationId, profile_id: profileOne, chart_id: chartId, title: "新工作机会", status: "active", last_message_at: "2026-11-03T01:00:01.000Z", created_at: "2026-11-03T01:00:00.000Z" }]);
+    }
+    return json(route, []);
+  }
+  if (pathname === "/rest/v1/messages" && method === "GET") return json(route, state.answered ? messages : []);
+  if (pathname === "/functions/v1/ai-consult") {
+    state.payloads.push(request.postDataJSON());
+    state.answered = true;
+    return json(route, { conversationId, assistantMessageId: messages[1].id, status: "complete", result: aiResult, consultedAt: "2026-11-03T01:00:01.000Z", reused: false });
+  }
+  if (pathname === "/rest/v1/profiles" && ["POST", "PATCH", "DELETE"].includes(method)) return json(route, []);
+  return json(route, []);
+}
+
+async function verifyMobileConsultFlow(browserType, launchOptions, contextOptions, name) {
+  const state = { answered: false, payloads: [] };
+  const deviceBrowser = await browserType.launch({ headless: true, ...launchOptions });
+  try {
+    const page = await deviceBrowser.newPage(contextOptions);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+    await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", (route) => mockAiCloud(route, state));
+    await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+    await page.locator("#loginAccount").fill("mobile-consult-test");
+    await page.locator("#loginPassword").fill("mobile-consult-test");
+    await page.locator("#loginSubmit").tap();
+    await page.locator("#businessApp").waitFor({ state: "visible" });
+    await page.locator("#recentQuestionList .chat-empty").waitFor({ state: "visible" });
+
+    const firstQuestion = "我有一个新工作机会，适合接受吗？";
+    await page.locator("#questionText").fill(firstQuestion);
+    await page.locator("#generateResult").tap();
+    for (let attempt = 0; attempt < 50 && state.payloads.length < 1; attempt += 1) {
+      await page.waitForTimeout(100);
+    }
+    if (state.payloads.length < 1) {
+      const diagnostics = await page.evaluate(() => ({
+        buttonDisabled: document.querySelector("#generateResult")?.disabled,
+        buttonText: document.querySelector("#generateResult")?.textContent,
+        question: document.querySelector("#questionText")?.value,
+        profile: document.querySelector("[data-current-profile-name]")?.textContent,
+      }));
+      throw new Error(`${name} 未提交第一条问题：${JSON.stringify(diagnostics)}`);
+    }
+    await page.locator(".chat-message.is-assistant.status-complete").waitFor({ state: "visible" });
+    assert.equal(state.payloads[0].profileId, profileOne);
+    assert.equal(state.payloads[0].conversationId, null);
+    assert.equal(state.payloads[0].question, firstQuestion);
+
+    const followUp = "我最应该先核实哪一项？";
+    await page.locator("#questionText").fill(followUp);
+    await page.locator("#generateResult").tap();
+    for (let attempt = 0; attempt < 50 && state.payloads.length < 2; attempt += 1) {
+      await page.waitForTimeout(100);
+    }
+    assert.equal(state.payloads.length, 2);
+    assert.equal(state.payloads[1].conversationId, conversationId);
+    assert.equal(state.payloads[1].question, followUp);
+    assert.deepEqual(pageErrors, [], `${name} 页面脚本报错`);
+    console.log(`OK ${name} 自定义问题与同会话连续追问`);
+  } finally {
+    await deviceBrowser.close();
+  }
+}
+
 const server = spawn(process.execPath, ["tools/dev-server.mjs"], {
   cwd: root,
   env: { ...process.env, PORT: String(port) },
@@ -141,36 +222,7 @@ try {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
-  await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", async (route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-    const pathname = url.pathname.replace(/^\/api\/supabase/, "");
-    const method = request.method();
-    if (pathname === "/functions/v1/auth-login") {
-      return json(route, { access_token: "test-token", refresh_token: "test-refresh", expires_in: 3600, user: { id: ownerId } });
-    }
-    if (pathname === "/rest/v1/profiles" && method === "GET") return json(route, profiles);
-    if (pathname === "/rest/v1/user_settings" && method === "GET") {
-      return json(route, [{ owner_id: ownerId, current_profile_id: profileOne, last_consulted_profile_id: null, preferences: {} }]);
-    }
-    if (pathname === "/rest/v1/user_settings" && method === "POST") return json(route, [request.postDataJSON()]);
-    if (pathname === "/rest/v1/rpc/save_current_chart") return json(route, [{ chart_id: chartId, chart_version: 1, reused: true }]);
-    if (pathname === "/rest/v1/conversations" && method === "GET") {
-      const filter = url.searchParams.get("profile_id");
-      if (filter === `eq.${profileOne}` && answered) {
-        return json(route, [{ id: conversationId, profile_id: profileOne, chart_id: chartId, title: "新工作机会", status: "active", last_message_at: "2026-11-03T01:00:01.000Z", created_at: "2026-11-03T01:00:00.000Z" }]);
-      }
-      return json(route, []);
-    }
-    if (pathname === "/rest/v1/messages" && method === "GET") return json(route, answered ? messages : []);
-    if (pathname === "/functions/v1/ai-consult") {
-      sentPayload = request.postDataJSON();
-      answered = true;
-      return json(route, { conversationId, assistantMessageId: messages[1].id, status: "complete", result: aiResult, consultedAt: "2026-11-03T01:00:01.000Z", reused: false });
-    }
-    if (pathname === "/rest/v1/profiles" && ["POST", "PATCH", "DELETE"].includes(method)) return json(route, []);
-    return json(route, []);
-  });
+  await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", (route) => mockAiCloud(route, desktopState));
 
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
   await page.locator("#loginAccount").fill("frontend-test");
@@ -184,6 +236,7 @@ try {
   await page.locator("#questionText").fill(question);
   await page.locator("#generateResult").click();
   await page.locator(".chat-message.is-assistant.status-complete").waitFor({ state: "visible" });
+  const sentPayload = desktopState.payloads[0];
   assert.equal(sentPayload.profileId, profileOne);
   assert.equal(sentPayload.conversationId, null);
   assert.equal(sentPayload.question, question);
@@ -203,11 +256,24 @@ try {
   assert.equal(await page.locator(".chat-message").count(), 0, "切换档案后不得残留上一档案消息");
   assert.deepEqual(pageErrors, []);
 
+  await verifyMobileConsultFlow(
+    chromium,
+    { executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe" },
+    { ...devices["Pixel 5"] },
+    "Pixel 5 Android Chrome 参数",
+  );
+  await verifyMobileConsultFlow(
+    webkit,
+    {},
+    { ...devices["iPhone 13"] },
+    "iPhone 13 WebKit 参数",
+  );
+
   console.log("OK 首次咨询使用当前档案和自定义问题调用云端 AI");
   console.log("OK AI 回答按固定学习结构展示并保存为连续会话");
   console.log("OK 成功后清空已发送问题且不会重复提交");
   console.log("OK 切换档案立即清空上一档案消息和上下文");
-  console.log("\n4 stage-five frontend checks passed.");
+  console.log("\n6 stage-five frontend checks passed.");
 } finally {
   await browser?.close().catch(() => undefined);
   server.kill();

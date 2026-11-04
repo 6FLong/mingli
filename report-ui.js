@@ -118,8 +118,8 @@
     if (!profileId || busy) return;
     setBusy(true, "打包中");
     try {
-      await client.saveProfilePackage(profileId);
-      bridge.showToast("报告 ZIP 已保存");
+      const result = await client.saveProfilePackage(profileId);
+      bridge.showToast(result.cloudSynced ? "报告 ZIP 已保存" : "ZIP 已保存，云端报告暂未更新");
       if (profileId === currentProfileId) await loadProfile(profileId);
     } catch (error) {
       bridge.showToast(error?.message || "报告保存失败");

@@ -36,6 +36,11 @@ check("正式导出为 PDF 与恢复 JSON 的 ZIP", () => {
   assert.match(reportClientSource, /全部命理分析报告-/);
   assert.match(html, /accept="application\/zip,\.zip/);
   assert.match(html, /导出全部分析报告/);
+  const exportBody = reportClientSource.match(/async function exportAllProfiles[\s\S]*?\n  }\n\n  async function inspectImportZip/)?.[0] || "";
+  assert.match(exportBody, /buildProfilePackage\(profile\.id\)/);
+  assert.doesNotMatch(exportBody, /refreshProfileReport\(profile\.id\)/);
+  assert.match(exportBody, /if \(!manifest\.profiles\.length\)[\s\S]*?throw new Error/);
+  assert.match(exportBody, /导出说明\.txt/);
 });
 
 check("恢复服务二次校验管理员、版本、摘要和敏感字段", () => {
@@ -74,6 +79,7 @@ const conversationId = "44444444-4444-4444-8444-444444444444";
 const storageWrites = [];
 const reportWrites = [];
 const restoreRequests = [];
+let failProfileDetailReads = false;
 
 const profile = {
   id: profileId, owner_id: ownerId, name: "本人报告测试", gender: "male", calendar_type: "solar",
@@ -143,7 +149,11 @@ async function mockReportCloud(route) {
   const pathname = url.pathname.replace(/^\/api\/supabase/, "");
   const method = request.method();
   if (pathname === "/functions/v1/auth-login") return json(route, { access_token: "token", refresh_token: "refresh", expires_in: 3600, user: { id: ownerId } });
-  if (pathname === "/rest/v1/profiles" && method === "GET") return json(route, [profile]);
+  if (pathname === "/rest/v1/profiles" && method === "GET") {
+    if (url.searchParams.get("select") === "id,name,birth_place,birth_date") return json(route, [profile]);
+    if (failProfileDetailReads) return json(route, { error: "cloud_unavailable", message: "无法连接云端" }, 503);
+    return json(route, [profile]);
+  }
   if (pathname === "/rest/v1/bazi_charts" && method === "GET") return json(route, [chart]);
   if (pathname === "/rest/v1/client_summaries" && method === "GET") return json(route, [summary]);
   if (pathname === "/rest/v1/reports" && method === "GET") return json(route, [report]);
@@ -280,6 +290,43 @@ try {
     }
   }, profileId);
   assert.equal(corruptRejected, true);
+
+  const storageWritesBeforeExport = storageWrites.length;
+  const [allDownload, allManifest] = await Promise.all([
+    page.waitForEvent("download"),
+    page.evaluate(() => window.MingliReportClient.exportAllProfiles()),
+  ]);
+  assert.match(allDownload.suggestedFilename(), /^全部命理分析报告-\d{4}-\d{2}-\d{2}\.zip$/);
+  assert.equal(allManifest.profiles.length, 1);
+  assert.equal(allManifest.failures.length, 0);
+  assert.equal(storageWrites.length, storageWritesBeforeExport, "全部导出不应依赖云端 Storage 上传");
+  const allZipBytes = fs.readFileSync(await allDownload.path());
+  const allZipNames = await page.evaluate((bytes) => (
+    [...window.MingliReportUtils.readZip(new Uint8Array(bytes)).keys()]
+  ), [...allZipBytes]);
+  assert.equal(allZipNames.filter((name) => name.endsWith(".pdf")).length, 1);
+  assert.equal(allZipNames.filter((name) => name.endsWith("恢复数据.json")).length, 1);
+  assert.ok(allZipNames.includes("导出说明.txt"));
+  assert.ok(allZipNames.includes("总清单.json"));
+  checks.push({ name: "全部导出直接生成完整 ZIP，不依赖 Storage 上传", ok: true });
+
+  failProfileDetailReads = true;
+  let unexpectedDownload = false;
+  page.once("download", () => { unexpectedDownload = true; });
+  const failedExportMessage = await page.evaluate(async () => {
+    try {
+      await window.MingliReportClient.exportAllProfiles();
+      return "";
+    } catch (error) {
+      return error?.message || "";
+    }
+  });
+  await page.waitForTimeout(300);
+  failProfileDetailReads = false;
+  assert.match(failedExportMessage, /全部报告导出失败/);
+  assert.equal(unexpectedDownload, false, "全部失败时不得下载只有错误清单的 ZIP");
+  checks.push({ name: "全部档案生成失败时不下载误导性的空 ZIP", ok: true });
+
   assert.deepEqual(pageErrors, []);
   checks.push({ name: "浏览器生成可解析 PDF、ZIP、恢复 JSON并覆盖云端当前报告", ok: true });
   checks.push({ name: "损坏 ZIP 会在导入写库前被拒绝", ok: true });

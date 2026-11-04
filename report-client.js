@@ -267,9 +267,14 @@
   }
 
   async function saveProfilePackage(profileId) {
-    const pkg = await refreshProfileReport(profileId);
+    const pkg = await buildProfilePackage(profileId);
     utils.downloadBytes(pkg.zip, `${pkg.base}.zip`, "application/zip");
-    return pkg;
+    try {
+      await uploadCurrentReport(pkg);
+      return { ...pkg, cloudSynced: true };
+    } catch (error) {
+      return { ...pkg, cloudSynced: false, cloudError: error?.message || "云端报告更新失败" };
+    }
   }
 
   async function exportAllProfiles(onProgress = () => {}) {
@@ -281,7 +286,7 @@
       const profile = profiles[index];
       onProgress({ current: index + 1, total: profiles.length, name: profile.name });
       try {
-        const pkg = await refreshProfileReport(profile.id);
+        const pkg = await buildProfilePackage(profile.id);
         const folder = `${safeFilename(profile.name)}-${String(profile.id).slice(0, 8)}`;
         entries.push(
           { name: `${folder}/${pkg.base}.pdf`, data: pkg.pdf },
@@ -292,6 +297,22 @@
         manifest.failures.push({ id: profile.id, name: profile.name, error: error?.message || "导出失败" });
       }
     }
+    if (!manifest.profiles.length) {
+      const firstFailure = manifest.failures[0]?.error || "没有可导出的报告";
+      throw new Error(`全部报告导出失败：${firstFailure}`);
+    }
+    const readableSummary = [
+      "命理咨询工作台全部报告导出说明",
+      `导出时间：${new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", dateStyle: "long", timeStyle: "medium" }).format(new Date(manifest.exportedAt))}`,
+      `成功：${manifest.profiles.length} 份`,
+      `失败：${manifest.failures.length} 份`,
+      "",
+      ...manifest.profiles.map((item) => `成功：${item.name}`),
+      ...manifest.failures.map((item) => `失败：${item.name}｜${item.error}`),
+      "",
+      "每个档案目录内包含可阅读 PDF 与恢复数据 JSON；导入应用时请选择整个 ZIP，不要单独选择 JSON。",
+    ].join("\n");
+    entries.push({ name: "导出说明.txt", data: readableSummary });
     entries.push({ name: "总清单.json", data: JSON.stringify(manifest, null, 2) });
     const zip = utils.createZip(entries);
     const date = new Date().toISOString().slice(0, 10);

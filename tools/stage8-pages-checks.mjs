@@ -21,7 +21,7 @@ async function verifyLoginPage(browserType, launchOptions, contextOptions) {
     const page = await browser.newPage(contextOptions);
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    const response = await page.goto(`${baseUrl}?release=product-38`, { waitUntil: "domcontentloaded" });
+    const response = await page.goto(`${baseUrl}?release=product-39`, { waitUntil: "domcontentloaded" });
     assert.equal(response.status(), 200);
     await page.locator("#authGate").waitFor({ state: "visible" });
     assert.equal(await page.locator("#businessApp").isVisible(), false);
@@ -39,20 +39,20 @@ async function verifyLoginPage(browserType, launchOptions, contextOptions) {
   }
 }
 
-const htmlResponse = await fetch(`${baseUrl}?release=product-38`, { cache: "no-store" });
+const htmlResponse = await fetch(`${baseUrl}?release=product-39`, { cache: "no-store" });
 assert.equal(htmlResponse.status, 200);
 const html = await htmlResponse.text();
-assert.match(html, /product-38/);
+assert.match(html, /product-39/);
 assert.match(html, /id="authGate"/);
-assert.match(html, /manifest\.webmanifest\?v=product-38/);
+assert.match(html, /manifest\.webmanifest\?v=product-39/);
 
-const manifestResponse = await fetch(`${baseUrl}manifest.webmanifest?v=product-38`, { cache: "no-store" });
+const manifestResponse = await fetch(`${baseUrl}manifest.webmanifest?v=product-39`, { cache: "no-store" });
 assert.equal(manifestResponse.status, 200);
 const manifest = await manifestResponse.json();
 assert.equal(manifest.start_url, "./index.html");
 assert.deepEqual(manifest.icons.map((item) => item.src), ["./icon-192.png", "./icon-512.png"]);
 
-for (const resource of ["app.js?v=product-38", "icon-192.png", "icon-512.png"]) {
+for (const resource of ["app.js?v=product-39", "icon-192.png", "icon-512.png"]) {
   assert.equal((await fetch(`${baseUrl}${resource}`, { cache: "no-store" })).status, 200, resource);
 }
 assert.equal((await fetch(`${baseUrl}sw.js`, { cache: "no-store" })).status, 404);
@@ -62,7 +62,7 @@ await verifyLoginPage(chromium, { executablePath: edgePath }, { viewport: { widt
 await verifyLoginPage(chromium, { executablePath: chromePath }, { ...devices["Pixel 5"] });
 await verifyLoginPage(webkit, {}, { ...devices["iPhone 13"], ignoreHTTPSErrors: true });
 
-console.log("OK GitHub Pages 已发布 product-38 正式资源");
+console.log("OK GitHub Pages 已发布 product-39 正式资源");
 console.log("OK 线上 Manifest、图标与无 Service Worker 状态正确");
 console.log("OK 390px 手机登录页为空、无横向溢出且脚本无错误");
 console.log("OK 1280px Microsoft Edge 登录页为空、无横向溢出且脚本无错误");
