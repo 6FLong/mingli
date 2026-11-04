@@ -43,10 +43,12 @@ check("档案筛选符合正式关系标签", () => {
   assert.deepEqual([...html.matchAll(/data-filter="([^"]+)"/g)].map((match) => match[1]), ["all", "本人", "家人", "客户", "expired"]);
 });
 
-check("三入口导航与手机窄屏有稳定尺寸规则", () => {
+check("三入口导航、账户弹层与手机窄屏有稳定尺寸规则", () => {
   assert.match(css, /\.tabbar\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3,\s*1fr\)/);
   assert.match(css, /@media \(max-width:\s*340px\)/);
   assert.match(css, /\.home-segments\s*\{[\s\S]*?repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(css, /\.account-modal\s*\{[\s\S]*?width:\s*min\(100%,\s*430px\)/);
+  assert.match(css, /\.account-sheet\s*\{[\s\S]*?width:\s*100%/);
 });
 
 const bundledModules =
@@ -78,7 +80,7 @@ let browser;
 try {
   await waitForServer();
   browser = await chromium.launch({ headless: true, executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe" });
-  for (const width of [320, 390, 430]) {
+  for (const width of [320, 390, 430, 1024]) {
     const page = await browser.newPage({ viewport: { width, height: 844 } });
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
@@ -122,12 +124,34 @@ try {
     assert.ok(layout.bodyWidth <= layout.viewportWidth, `${width}px 页面存在横向溢出`);
     assert.ok(Math.abs(layout.navBottom - 844) <= 1, `${width}px 底部导航未贴合视口`);
     assert.ok(layout.navWidth <= width, `${width}px 底部导航超出视口`);
+    if (width === 1024) {
+      await page.locator('[data-go="mine"]').last().click();
+      await page.locator("#openLoginLogs").click();
+      await page.locator("#loginLogsModal").waitFor({ state: "visible" });
+      const overlay = await page.evaluate(() => {
+        const appRect = document.querySelector(".app-shell").getBoundingClientRect();
+        const modalRect = document.querySelector("#loginLogsModal").getBoundingClientRect();
+        const sheetRect = document.querySelector("#loginLogsModal .account-sheet").getBoundingClientRect();
+        return {
+          appLeft: appRect.left,
+          appRight: appRect.right,
+          modalLeft: modalRect.left,
+          modalRight: modalRect.right,
+          modalWidth: modalRect.width,
+          sheetWidth: sheetRect.width,
+        };
+      });
+      assert.ok(overlay.modalWidth <= 430, "桌面登录日志弹层超过 APP 宽度");
+      assert.ok(Math.abs(overlay.modalLeft - overlay.appLeft) <= 1, "桌面弹层左侧未对齐 APP");
+      assert.ok(Math.abs(overlay.modalRight - overlay.appRight) <= 1, "桌面弹层右侧未对齐 APP");
+      assert.ok(Math.abs(overlay.sheetWidth - overlay.modalWidth) <= 1, "登录日志内容未限制在弹层内");
+    }
     assert.deepEqual(pageErrors, [], `${width}px 页面脚本报错`);
     await page.close();
   }
-  checks.push({ name: "320px 至 430px 浏览器切换与布局无溢出", ok: true });
+  checks.push({ name: "320px 至 1024px 浏览器切换、弹层对齐与布局无溢出", ok: true });
 } catch (error) {
-  checks.push({ name: "320px 至 430px 浏览器切换与布局无溢出", ok: false, error });
+  checks.push({ name: "320px 至 1024px 浏览器切换、弹层对齐与布局无溢出", ok: false, error });
 } finally {
   await browser?.close().catch(() => undefined);
   server.kill();

@@ -7,6 +7,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const securityPath = path.join(root, "supabase/functions/_shared/security.ts");
 const authLoginPath = path.join(root, "supabase/functions/auth-login/index.ts");
 const authLoginSource = fs.readFileSync(authLoginPath, "utf8");
+const serviceRoleMigration = fs.readFileSync(
+  path.join(root, "supabase/migrations/202611040008_service_role_api_grants.sql"),
+  "utf8",
+);
 const security = await import(pathToFileURL(securityPath));
 
 const checks = [];
@@ -50,8 +54,14 @@ check("IPv4 与 IPv6 只保留脱敏网络段", () => {
   assert.equal(security.maskIp(""), "");
 });
 
-check("客户端 IP 优先取代理链首个地址", () => {
-  const headers = new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1", "x-real-ip": "198.51.100.1" });
+check("客户端 IP 优先取受控中转值再取代理链首项", () => {
+  const headers = new Headers({
+    "x-mingli-client-ip": "198.51.100.8",
+    "x-forwarded-for": "203.0.113.7, 10.0.0.1",
+    "x-real-ip": "198.51.100.1",
+  });
+  assert.equal(security.getClientIp(headers), "198.51.100.8");
+  headers.delete("x-mingli-client-ip");
   assert.equal(security.getClientIp(headers), "203.0.113.7");
 });
 
@@ -84,6 +94,26 @@ await checkAsync("优先使用边缘网络提供的近似地区", async () => {
   });
 });
 
+await checkAsync("优先使用 Netlify 中转传入的真实城市级地区", async () => {
+  const result = await security.resolveApproximateLocation(
+    new Headers({
+      "x-mingli-country": "CN",
+      "x-mingli-region": "Guangdong",
+      "x-mingli-city": "Shenzhen",
+      "cf-ipcountry": "SG",
+    }),
+    "203.0.113.7",
+  );
+  assert.deepEqual(result, {
+    countryCode: "CN",
+    regionName: "Guangdong",
+    cityName: "Shenzhen",
+    source: "netlify-edge",
+  });
+  assert.equal(security.decodeRelayHeader("Central%20District"), "Central District");
+  assert.equal(security.decodeRelayHeader("%E0%A4%A"), "");
+});
+
 check("登录函数固定频率限制并覆盖全部日志结果", () => {
   assert.match(authLoginSource, /RATE_LIMIT_ATTEMPTS = 10/);
   for (const eventType of [
@@ -96,6 +126,11 @@ check("登录函数固定频率限制并覆盖全部日志结果", () => {
   }
 });
 
+check("登录日志优先记录中转传递的真实浏览器设备", () => {
+  assert.match(authLoginSource, /x-mingli-user-agent/);
+  assert.match(authLoginSource, /decodeRelayHeader/);
+});
+
 check("登录函数通过服务端白名单校验且不返回邮箱", () => {
   assert.match(authLoginSource, /admin_users/);
   assert.match(authLoginSource, /serviceRoleKey|serviceRequest/);
@@ -106,6 +141,14 @@ check("统一错误提示不暴露账户是否存在", () => {
   const occurrences = authLoginSource.match(/账户或密码不正确/g) || [];
   assert.ok(occurrences.length >= 3);
   assert.doesNotMatch(authLoginSource, /邮箱不存在|账户不存在|用户不存在/);
+});
+
+check("登录服务异常返回可重试中文提示且不泄露内部错误", () => {
+  assert.match(authLoginSource, /error:\s*"service_unavailable"/);
+  assert.match(authLoginSource, /message:\s*"云端服务暂时不可用，请稍后重试"/);
+  assert.match(authLoginSource, /console\.error\("auth-login failed"/);
+  assert.doesNotMatch(authLoginSource, /message:\s*error\.(?:message|stack)/);
+  assert.match(serviceRoleMigration, /grant select, insert on public\.login_events to service_role/i);
 });
 
 check("密码只用于 Auth 请求且不会写入登录日志", () => {

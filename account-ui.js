@@ -45,6 +45,32 @@
     return parts.length ? `${parts.join(" · ")}（IP 推断）` : "未知地区（IP 推断）";
   }
 
+  function deviceLabel(value) {
+    const source = String(value || "");
+    if (!source) return "未知设备";
+    const platform = /iPhone/i.test(source)
+      ? "iPhone"
+      : /iPad/i.test(source)
+        ? "iPad"
+        : /Android/i.test(source)
+          ? "Android"
+          : /Windows/i.test(source)
+            ? "Windows"
+            : /Macintosh|Mac OS X/i.test(source)
+              ? "Mac"
+              : "其他设备";
+    const browser = /Edg\//i.test(source)
+      ? "Edge"
+      : /(?:CriOS|Chrome)\//i.test(source)
+        ? "Chrome"
+        : /Firefox\//i.test(source)
+          ? "Firefox"
+          : /Safari\//i.test(source)
+            ? "Safari"
+            : "浏览器";
+    return `${browser} · ${platform}`;
+  }
+
   function createLogRow(event) {
     const article = document.createElement("article");
     article.className = `login-log-item risk-${event.risk_level || "normal"}`;
@@ -64,7 +90,7 @@
     const location = document.createElement("p");
     location.textContent = `地区：${locationLabel(event)}`;
     const device = document.createElement("p");
-    device.textContent = `设备：${event.device_summary || "未知设备"}`;
+    device.textContent = `设备：${deviceLabel(event.device_summary)}`;
     const network = document.createElement("p");
     network.textContent = `网络：${event.ip_masked || "未知"}`;
     article.append(head, account, location, device, network);

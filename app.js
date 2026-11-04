@@ -77,7 +77,7 @@ const CHART_STORE = "charts";
 const QUESTION_STORE = "questions";
 const BACKUP_STORE = "backups";
 const CURRENT_PROFILE_KEY = "currentProfileId";
-const APP_VERSION = "product-35";
+const APP_VERSION = "product-36";
 const RULESET_LABEL = "《四柱预测学》子平法口径（未核对处按传统子平法）";
 const RULESET_PROVENANCE = Object.freeze({
   primarySource: {

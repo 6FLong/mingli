@@ -29,6 +29,20 @@ const RESPONSE_HEADERS = new Set([
 ]);
 const ALLOWED_METHODS = new Set(["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"]);
 
+type RelayContext = {
+  ip?: string;
+  geo?: {
+    city?: string;
+    country?: { code?: string; name?: string };
+    subdivision?: { code?: string; name?: string };
+  };
+};
+
+function setEncodedHeader(headers: Headers, name: string, value: unknown, maxLength: number): void {
+  const normalized = String(value || "").replace(/[\r\n]/g, " ").trim().slice(0, maxLength);
+  if (normalized) headers.set(name, encodeURIComponent(normalized));
+}
+
 function corsHeaders(origin: string | null): Headers {
   const headers = new Headers({
     "Access-Control-Allow-Headers": "apikey, authorization, content-type, prefer, range, x-client-info, x-upsert",
@@ -46,7 +60,7 @@ function json(status: number, code: string, origin: string | null): Response {
   return new Response(JSON.stringify({ error: code }), { status, headers });
 }
 
-export default async function supabaseProxy(request: Request): Promise<Response> {
+export default async function supabaseProxy(request: Request, context: RelayContext = {}): Promise<Response> {
   const origin = request.headers.get("origin");
   if (origin && !ALLOWED_ORIGINS.has(origin)) return json(403, "origin_not_allowed", origin);
   if (!ALLOWED_METHODS.has(request.method)) return json(405, "method_not_allowed", origin);
@@ -64,6 +78,17 @@ export default async function supabaseProxy(request: Request): Promise<Response>
   request.headers.forEach((value, name) => {
     if (REQUEST_HEADERS.has(name.toLowerCase())) requestHeaders.set(name, value);
   });
+  const relayIp = String(context.ip || "").trim();
+  if (/^[0-9a-f:.]{3,64}$/i.test(relayIp)) requestHeaders.set("x-mingli-client-ip", relayIp);
+  setEncodedHeader(requestHeaders, "x-mingli-country", context.geo?.country?.code, 8);
+  setEncodedHeader(
+    requestHeaders,
+    "x-mingli-region",
+    context.geo?.subdivision?.name || context.geo?.subdivision?.code,
+    120,
+  );
+  setEncodedHeader(requestHeaders, "x-mingli-city", context.geo?.city, 120);
+  setEncodedHeader(requestHeaders, "x-mingli-user-agent", request.headers.get("user-agent"), 300);
 
   try {
     const upstream = await fetch(targetUrl, {

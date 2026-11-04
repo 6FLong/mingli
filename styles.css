@@ -1960,15 +1960,19 @@ body.modal-open {
 
 .account-modal {
   position: fixed;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 50%;
   z-index: 80;
   display: grid;
   align-items: end;
+  width: min(100%, 430px);
   background: rgba(21, 32, 35, 0.42);
+  transform: translateX(-50%);
 }
 
 .account-sheet {
-  width: min(100%, 680px);
+  width: 100%;
   max-height: min(86dvh, 760px);
   margin: 0 auto;
   overflow: auto;

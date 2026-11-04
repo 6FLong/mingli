@@ -1,6 +1,7 @@
 import { corsHeaders, isAllowedOrigin, jsonResponse } from "../_shared/http.ts";
 import {
   getClientIp,
+  decodeRelayHeader,
   isPlausibleEmail,
   maskIp,
   normalizeAccount,
@@ -65,7 +66,7 @@ async function isAdmin(
   return Array.isArray(rows) && rows.length === 1;
 }
 
-Deno.serve(async (request) => {
+async function handleRequest(request: Request): Promise<Response> {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders(request) });
   }
@@ -92,7 +93,9 @@ Deno.serve(async (request) => {
   const ip = getClientIp(request.headers);
   const salt = Deno.env.get("LOGIN_AUDIT_SALT") || environment.url;
   const ipHash = await sha256Hex(`${salt}:${ip || "unknown"}`);
-  const device = sanitizeDevice(request.headers.get("user-agent"));
+  const device = sanitizeDevice(
+    decodeRelayHeader(request.headers.get("x-mingli-user-agent")) || request.headers.get("user-agent"),
+  );
   const location = await resolveApproximateLocation(request.headers, ip);
   const eventBase = {
     account_identifier: account,
@@ -153,4 +156,16 @@ Deno.serve(async (request) => {
     token_type: session.token_type || "bearer",
     user: { id: userId },
   });
+}
+
+Deno.serve(async (request) => {
+  try {
+    return await handleRequest(request);
+  } catch (error) {
+    console.error("auth-login failed", error instanceof Error ? error.message : "unknown error");
+    return jsonResponse(request, 503, {
+      error: "service_unavailable",
+      message: "云端服务暂时不可用，请稍后重试",
+    });
+  }
 });

@@ -17,7 +17,18 @@ export function sanitizeDevice(value: string | null): string {
     .slice(0, MAX_DEVICE_LENGTH);
 }
 
+export function decodeRelayHeader(value: string | null): string {
+  if (!value) return "";
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return "";
+  }
+}
+
 export function getClientIp(headers: Headers): string {
+  const relayed = headers.get("x-mingli-client-ip")?.trim();
+  if (relayed) return relayed;
   const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   return forwarded || headers.get("cf-connecting-ip")?.trim() || headers.get("x-real-ip")?.trim() || "";
 }
@@ -58,6 +69,18 @@ export async function resolveApproximateLocation(
   headers: Headers,
   ip: string,
 ): Promise<ApproximateLocation> {
+  const relayCountry = decodeRelayHeader(headers.get("x-mingli-country"));
+  const relayRegion = decodeRelayHeader(headers.get("x-mingli-region"));
+  const relayCity = decodeRelayHeader(headers.get("x-mingli-city"));
+  if (relayCountry || relayRegion || relayCity) {
+    return {
+      countryCode: relayCountry.slice(0, 8),
+      regionName: relayRegion.slice(0, 120),
+      cityName: relayCity.slice(0, 120),
+      source: "netlify-edge",
+    };
+  }
+
   const headerCountry = headers.get("cf-ipcountry") || headers.get("x-vercel-ip-country") || "";
   const headerRegion = headers.get("x-vercel-ip-country-region") || "";
   const headerCity = headers.get("x-vercel-ip-city") || "";

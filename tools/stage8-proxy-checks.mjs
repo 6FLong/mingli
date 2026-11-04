@@ -50,9 +50,18 @@ try {
         apikey: "public-key",
         Authorization: "Bearer user-token",
         Cookie: "must-not-pass=1",
+        "User-Agent": "Mozilla/5.0 Test Browser",
+        "X-Mingli-Client-Ip": "198.51.100.99",
       },
     },
-  ));
+  ), {
+    ip: "203.0.113.42",
+    geo: {
+      country: { code: "CN" },
+      subdivision: { name: "Guangdong" },
+      city: "Shenzhen",
+    },
+  });
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("access-control-allow-origin"), "https://6flong.github.io");
   assert.equal(response.headers.get("set-cookie"), null);
@@ -60,6 +69,11 @@ try {
   assert.equal(upstreamRequests[0].url, "https://tcqyntzbeinlygvwahav.supabase.co/rest/v1/profiles?select=id%2Cname");
   assert.equal(upstreamRequests[0].options.headers.get("authorization"), "Bearer user-token");
   assert.equal(upstreamRequests[0].options.headers.get("origin"), "https://6flong.github.io");
+  assert.equal(upstreamRequests[0].options.headers.get("x-mingli-client-ip"), "203.0.113.42");
+  assert.equal(upstreamRequests[0].options.headers.get("x-mingli-country"), "CN");
+  assert.equal(upstreamRequests[0].options.headers.get("x-mingli-region"), "Guangdong");
+  assert.equal(upstreamRequests[0].options.headers.get("x-mingli-city"), "Shenzhen");
+  assert.equal(decodeURIComponent(upstreamRequests[0].options.headers.get("x-mingli-user-agent")), "Mozilla/5.0 Test Browser");
   assert.equal(upstreamRequests[0].options.headers.get("cookie"), null);
 
   const invalid = await proxy(new Request("https://relay.netlify.app/api/supabase/unknown/path", {
@@ -74,4 +88,5 @@ try {
 console.log("OK 中转只允许正式 GitHub Pages 与本地开发来源");
 console.log("OK 中转只访问固定 Supabase 项目及允许的 API 命名空间");
 console.log("OK 身份头与浏览器来源按需转发，Cookie 与上游 Set-Cookie 不透传");
-console.log("\n3 stage-eight proxy checks passed.");
+console.log("OK 登录设备、客户端 IP 与城市级边缘定位由 Netlify 上下文覆盖转发");
+console.log("\n4 stage-eight proxy checks passed.");

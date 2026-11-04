@@ -18,6 +18,7 @@ function check(name, fn) {
 }
 
 const migration = read("supabase/migrations/202611030001_initial_schema.sql");
+const serviceRoleMigration = read("supabase/migrations/202611040008_service_role_api_grants.sql");
 const supabaseConfig = read("supabase/config.toml");
 const appConfigSource = read("app-config.js");
 const indexHtml = read("index.html");
@@ -29,7 +30,7 @@ check("公开前端配置可执行且只包含公开连接信息", () => {
   const config = context.window.MINGLI_CONFIG;
   assert.equal(config.supabaseUrl, "https://resonant-brioche-af680c.netlify.app/api/supabase");
   assert.match(config.supabasePublishableKey, /^sb_publishable_/);
-  assert.equal(config.databaseSchemaVersion, "2026110407");
+  assert.equal(config.databaseSchemaVersion, "2026110408");
   assert.equal(Object.isFrozen(config), true);
 });
 
@@ -110,6 +111,15 @@ check("登录日志客户端只能读取和更新 read_at", () => {
   assert.match(migration, /grant select on public\.login_events to authenticated/i);
   assert.match(migration, /grant update \(read_at\) on public\.login_events to authenticated/i);
   assert.doesNotMatch(migration, /grant (insert|delete).*login_events.*authenticated/i);
+});
+
+check("服务端角色只有受控函数所需的表权限", () => {
+  assert.match(serviceRoleMigration, /grant usage on schema public to service_role/i);
+  for (const table of ["admin_users", "profiles", "bazi_charts", "messages", "client_summaries", "reports"]) {
+    assert.match(serviceRoleMigration, new RegExp(`grant select on public\\.${table} to service_role`, "i"), table);
+  }
+  assert.match(serviceRoleMigration, /grant select, insert on public\.login_events to service_role/i);
+  assert.doesNotMatch(serviceRoleMigration, /grant\s+(?:all|delete|update)/i);
 });
 
 check("匿名角色没有业务表权限", () => {
