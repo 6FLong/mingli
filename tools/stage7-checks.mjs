@@ -9,6 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const migration = read("supabase/migrations/202611030006_retention_and_delete.sql");
 const hardeningMigration = read("supabase/migrations/202611040007_least_privilege_hardening.sql");
+const compensationMigration = read("supabase/migrations/202611040009_profile_delete_compensation.sql");
 const consultMigration = read("supabase/migrations/202611030003_ai_consult_transactions.sql");
 const deleteFunction = read("supabase/functions/profile-delete/index.ts");
 const cloudData = read("cloud-data.js");
@@ -87,6 +88,25 @@ check("永久删除仅由管理员函数执行且清理 Storage 与全部业务�
   assert.match(hardeningMigration, /revoke insert, update, delete on public\.messages from authenticated/);
   assert.match(hardeningMigration, /drop policy if exists reports_storage_delete_admin/);
   assert.doesNotMatch(hardeningMigration, /grant\s+delete/i);
+});
+
+check("数据库删除失败时恢复原报告，极端部分失败写入专用日志", () => {
+  const readIndex = deleteFunction.indexOf("readReportBackup(environment, reportPath)");
+  const storageDeleteIndex = deleteFunction.indexOf('method: "DELETE"', readIndex);
+  const databaseDeleteIndex = deleteFunction.indexOf("rpc/delete_profile_permanently", storageDeleteIndex);
+  const restoreIndex = deleteFunction.indexOf("restoreReportBackup(environment, reportPath, reportBackup)", databaseDeleteIndex);
+  assert.ok(readIndex >= 0 && storageDeleteIndex > readIndex, "删除前必须读取报告备份");
+  assert.ok(databaseDeleteIndex > storageDeleteIndex, "报告删除成功后才能执行数据库事务");
+  assert.ok(restoreIndex > databaseDeleteIndex, "数据库事务失败后必须恢复报告");
+  assert.match(deleteFunction, /headers: \{ "Content-Type": "application\/pdf", "x-upsert": "true" \}/);
+  assert.match(deleteFunction, /profile_delete_partial_failure/);
+  assert.match(deleteFunction, /record_profile_delete_partial_failure/);
+  assert.match(deleteFunction, /async function recordPartialFailure[\s\S]*?catch \{[\s\S]*?return false/);
+  assert.match(compensationMigration, /result, error_code[\s\S]*?'partial_failure'/);
+  assert.match(compensationMigration, /encode\(digest\([\s\S]*?'sha256'\), 'hex'\)/);
+  assert.match(compensationMigration, /revoke all on function public\.record_profile_delete_partial_failure[\s\S]*?authenticated/);
+  assert.match(compensationMigration, /grant execute on function public\.record_profile_delete_partial_failure[\s\S]*?service_role/);
+  assert.doesNotMatch(compensationMigration, /grant execute on function public\.record_profile_delete_partial_failure[\s\S]*?to authenticated/);
 });
 
 check("前端明确二次确认删除范围并只给到期客户显示更新报告", () => {

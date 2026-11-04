@@ -10,6 +10,49 @@ async function serviceJson(environment: ReturnType<typeof supabaseEnvironment>, 
   return response.json();
 }
 
+async function readReportBackup(
+  environment: ReturnType<typeof supabaseEnvironment>,
+  reportPath: string,
+): Promise<Uint8Array | null> {
+  const response = await serviceRequest(environment, `/storage/v1/object/reports/${reportPath}`);
+  if (response.status === 404) return null;
+  if (!response.ok) throw new ApiError(502, "report_read_failed", "报告文件读取失败，档案尚未删除，请重试");
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+async function restoreReportBackup(
+  environment: ReturnType<typeof supabaseEnvironment>,
+  reportPath: string,
+  reportBackup: Uint8Array,
+): Promise<boolean> {
+  const response = await serviceRequest(environment, `/storage/v1/object/reports/${reportPath}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/pdf", "x-upsert": "true" },
+    body: reportBackup,
+  });
+  return response.ok;
+}
+
+async function recordPartialFailure(
+  environment: ReturnType<typeof supabaseEnvironment>,
+  ownerId: string,
+  profileId: string,
+): Promise<boolean> {
+  try {
+    const response = await serviceRequest(environment, "/rest/v1/rpc/record_profile_delete_partial_failure", {
+      method: "POST",
+      body: JSON.stringify({
+        target_owner_id: ownerId,
+        target_profile_id: profileId,
+        target_error_code: "report_restore_failed",
+      }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(request) });
   if (request.method !== "POST") return jsonResponse(request, 405, { error: "method_not_allowed" });
@@ -37,20 +80,33 @@ Deno.serve(async (request) => {
     if (profile.name !== confirmName) throw new ApiError(400, "delete_name_mismatch", "档案名称确认不一致");
 
     const reportPath = `${admin.id}/${profileId}/current-report.pdf`;
-    const storageResponse = await serviceRequest(environment, `/storage/v1/object/reports/${reportPath}`, { method: "DELETE" });
-    if (!storageResponse.ok && storageResponse.status !== 404) {
-      throw new ApiError(502, "report_delete_failed", "报告文件删除失败，档案尚未删除，请重试");
+    const reportBackup = await readReportBackup(environment, reportPath);
+    if (reportBackup) {
+      const storageResponse = await serviceRequest(environment, `/storage/v1/object/reports/${reportPath}`, { method: "DELETE" });
+      if (!storageResponse.ok && storageResponse.status !== 404) {
+        throw new ApiError(502, "report_delete_failed", "报告文件删除失败，档案尚未删除，请重试");
+      }
     }
 
     const deleteResponse = await serviceRequest(environment, "/rest/v1/rpc/delete_profile_permanently", {
       method: "POST",
       body: JSON.stringify({ target_owner_id: admin.id, target_profile_id: profileId }),
     });
-    if (!deleteResponse.ok) {
-      throw new ApiError(500, "profile_delete_failed", "档案删除失败，请安全重试");
+    const result = deleteResponse.ok ? await deleteResponse.json() : null;
+    if (!deleteResponse.ok || !result?.deleted) {
+      if (reportBackup) {
+        const restored = await restoreReportBackup(environment, reportPath, reportBackup);
+        if (!restored) {
+          await recordPartialFailure(environment, admin.id, profileId);
+          throw new ApiError(
+            500,
+            "profile_delete_partial_failure",
+            "档案尚未删除，但报告文件恢复失败。请停止重试并检查云端报告",
+          );
+        }
+      }
+      throw new ApiError(500, "profile_delete_failed", "档案删除失败，原报告已保留，请安全重试");
     }
-    const result = await deleteResponse.json();
-    if (!result?.deleted) throw new ApiError(500, "profile_delete_failed", "档案删除失败，请安全重试");
     return jsonResponse(request, 200, {
       ...result,
       scope: ["档案", "命盘", "会话", "消息", "滚动摘要", "分析报告"],
