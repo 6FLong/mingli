@@ -9,6 +9,33 @@ const bundledModules =
 const require = createRequire(path.join(bundledModules, "package.json"));
 const { chromium } = require("playwright");
 const baseUrl = "https://6flong.github.io/mingli/";
+const chromePath = "C:/Program Files/Google/Chrome/Application/chrome.exe";
+const edgePath = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
+
+async function verifyLoginPage(executablePath, viewport) {
+  assert.equal(fs.existsSync(executablePath), true, `${executablePath} 不存在`);
+  const browser = await chromium.launch({ headless: true, executablePath });
+  try {
+    const page = await browser.newPage({ viewport });
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    const response = await page.goto(`${baseUrl}?release=product-38`, { waitUntil: "domcontentloaded" });
+    assert.equal(response.status(), 200);
+    await page.locator("#authGate").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#businessApp").isVisible(), false);
+    assert.equal(await page.locator("#loginAccount").inputValue(), "");
+    assert.equal(await page.locator("#loginPassword").inputValue(), "");
+    assert.deepEqual(errors, []);
+    const dimensions = await page.evaluate(() => ({
+      body: document.body.scrollWidth,
+      viewport: document.documentElement.clientWidth,
+    }));
+    assert.ok(dimensions.body <= dimensions.viewport);
+    return page;
+  } finally {
+    await browser.close();
+  }
+}
 
 const htmlResponse = await fetch(`${baseUrl}?release=product-38`, { cache: "no-store" });
 assert.equal(htmlResponse.status, 200);
@@ -28,33 +55,11 @@ for (const resource of ["app.js?v=product-38", "icon-192.png", "icon-512.png"]) 
 }
 assert.equal((await fetch(`${baseUrl}sw.js`, { cache: "no-store" })).status, 404);
 
-const browser = await chromium.launch({
-  headless: true,
-  executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe",
-});
-try {
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  const response = await page.goto(`${baseUrl}?release=product-38`, { waitUntil: "domcontentloaded" });
-  assert.equal(response.status(), 200);
-  await page.locator("#authGate").waitFor({ state: "visible" });
-  assert.equal(await page.locator("#businessApp").isVisible(), false);
-  assert.equal(await page.locator("#loginAccount").inputValue(), "");
-  assert.equal(await page.locator("#loginPassword").inputValue(), "");
-  assert.deepEqual(errors, []);
-  const dimensions = await page.evaluate(() => ({
-    body: document.body.scrollWidth,
-    viewport: document.documentElement.clientWidth,
-  }));
-  assert.ok(dimensions.body <= dimensions.viewport);
-  fs.mkdirSync(path.join(process.cwd(), ".tools"), { recursive: true });
-  await page.screenshot({ path: path.join(process.cwd(), ".tools/pages-login-product-38.png"), fullPage: true });
-} finally {
-  await browser.close();
-}
+await verifyLoginPage(chromePath, { width: 390, height: 844 });
+await verifyLoginPage(edgePath, { width: 1280, height: 800 });
 
 console.log("OK GitHub Pages 已发布 product-38 正式资源");
 console.log("OK 线上 Manifest、图标与无 Service Worker 状态正确");
 console.log("OK 390px 手机登录页为空、无横向溢出且脚本无错误");
-console.log("\n3 stage-eight Pages checks passed.");
+console.log("OK 1280px Microsoft Edge 登录页为空、无横向溢出且脚本无错误");
+console.log("\n4 stage-eight Pages checks passed.");
