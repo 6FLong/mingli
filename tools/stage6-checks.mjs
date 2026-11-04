@@ -64,7 +64,7 @@ const bundledModules =
   process.env.CODEX_NODE_MODULES ||
   "C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules";
 const require = createRequire(path.join(bundledModules, "package.json"));
-const { chromium } = require("playwright");
+const { chromium, devices, webkit } = require("playwright");
 const port = 4186;
 const baseUrl = `http://127.0.0.1:${port}/`;
 const ownerId = "11111111-1111-4111-8111-111111111111";
@@ -73,6 +73,7 @@ const chartId = "33333333-3333-4333-8333-333333333333";
 const conversationId = "44444444-4444-4444-8444-444444444444";
 const storageWrites = [];
 const reportWrites = [];
+const restoreRequests = [];
 
 const profile = {
   id: profileId, owner_id: ownerId, name: "本人报告测试", gender: "male", calendar_type: "solar",
@@ -136,6 +137,82 @@ async function waitForServer() {
   throw new Error("本地服务器未启动");
 }
 
+async function mockReportCloud(route) {
+  const request = route.request();
+  const url = new URL(request.url());
+  const pathname = url.pathname.replace(/^\/api\/supabase/, "");
+  const method = request.method();
+  if (pathname === "/functions/v1/auth-login") return json(route, { access_token: "token", refresh_token: "refresh", expires_in: 3600, user: { id: ownerId } });
+  if (pathname === "/rest/v1/profiles" && method === "GET") return json(route, [profile]);
+  if (pathname === "/rest/v1/bazi_charts" && method === "GET") return json(route, [chart]);
+  if (pathname === "/rest/v1/client_summaries" && method === "GET") return json(route, [summary]);
+  if (pathname === "/rest/v1/reports" && method === "GET") return json(route, [report]);
+  if (pathname === "/rest/v1/conversations" && method === "GET") return json(route, [conversation]);
+  if (pathname === "/rest/v1/messages" && method === "GET") return json(route, messages);
+  if (pathname === "/rest/v1/user_settings" && method === "GET") return json(route, [{ owner_id: ownerId, current_profile_id: profileId }]);
+  if (pathname === "/rest/v1/user_settings" && method === "POST") return json(route, [request.postDataJSON()]);
+  if (pathname === "/rest/v1/rpc/save_current_chart") return json(route, [{ chart_id: chartId, reused: true }]);
+  if (pathname.startsWith("/storage/v1/object/reports/") && method === "POST") {
+    storageWrites.push({ path: pathname, headers: request.headers(), size: request.postDataBuffer()?.length || 0 });
+    return json(route, { Key: pathname });
+  }
+  if (pathname === "/rest/v1/reports" && method === "POST") {
+    reportWrites.push(request.postDataJSON());
+    return json(route, [request.postDataJSON()], 201);
+  }
+  if (pathname === "/functions/v1/report-restore") {
+    restoreRequests.push(request.postDataJSON());
+    return json(route, { restored: 1, skipped: 0, profileIds: [profileId] });
+  }
+  return json(route, []);
+}
+
+async function verifyMobileZipFlow(browserType, launchOptions, contextOptions, name) {
+  const deviceBrowser = await browserType.launch({ headless: true, ...launchOptions });
+  try {
+    const page = await deviceBrowser.newPage(contextOptions);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+    await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", mockReportCloud);
+    await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+    await page.locator("#loginAccount").fill("mobile-report-test");
+    await page.locator("#loginPassword").fill("mobile-report-test");
+    await page.locator("#loginSubmit").tap();
+    await page.locator("#businessApp").waitFor({ state: "visible" });
+    await page.locator('[data-home-view="report"]').tap();
+
+    const zipBytes = await page.evaluate(async (id) => {
+      const pkg = await window.MingliReportClient.buildProfilePackage(id);
+      return [...pkg.zip];
+    }, profileId);
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator("#saveCurrentReport").tap(),
+    ]);
+    assert.match(download.suggestedFilename(), /^北京-本人报告测试-1990-01-02-命理分析报告\.zip$/);
+
+    await page.locator('[data-go="mine"]').last().tap();
+    const restoreCountBeforePreview = restoreRequests.length;
+    await page.locator("#backupFileInput").setInputFiles({
+      name: "北京-本人报告测试-1990-01-02-命理分析报告.zip",
+      mimeType: "application/zip",
+      buffer: Buffer.from(zipBytes),
+    });
+    await page.locator("#reportImportModal").waitFor({ state: "visible" });
+    await page.locator("#reportImportStatus").waitFor({ state: "visible" });
+    assert.match(await page.locator("#reportImportStatus").textContent(), /已验证 1 份档案/);
+    assert.match(await page.locator("#reportImportPreview").innerText(), /本人报告测试/);
+    assert.equal(await page.locator("#confirmReportImport").isEnabled(), true);
+    assert.equal(restoreRequests.length, restoreCountBeforePreview, "导入预览不得写入云端");
+    assert.deepEqual(pageErrors, [], `${name} 页面脚本报错`);
+    checks.push({ name: `${name} 报告 ZIP 下载与导入预览`, ok: true });
+  } catch (error) {
+    checks.push({ name: `${name} 报告 ZIP 下载与导入预览`, ok: false, error });
+  } finally {
+    await deviceBrowser.close();
+  }
+}
+
 const server = spawn(process.execPath, ["tools/dev-server.mjs"], { cwd: root, env: { ...process.env, PORT: String(port) }, stdio: "ignore" });
 let browser;
 try {
@@ -144,31 +221,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", async (route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-    const pathname = url.pathname.replace(/^\/api\/supabase/, "");
-    const method = request.method();
-    if (pathname === "/functions/v1/auth-login") return json(route, { access_token: "token", refresh_token: "refresh", expires_in: 3600, user: { id: ownerId } });
-    if (pathname === "/rest/v1/profiles" && method === "GET") return json(route, [profile]);
-    if (pathname === "/rest/v1/bazi_charts" && method === "GET") return json(route, [chart]);
-    if (pathname === "/rest/v1/client_summaries" && method === "GET") return json(route, [summary]);
-    if (pathname === "/rest/v1/reports" && method === "GET") return json(route, [report]);
-    if (pathname === "/rest/v1/conversations" && method === "GET") return json(route, [conversation]);
-    if (pathname === "/rest/v1/messages" && method === "GET") return json(route, messages);
-    if (pathname === "/rest/v1/user_settings" && method === "GET") return json(route, [{ owner_id: ownerId, current_profile_id: profileId }]);
-    if (pathname === "/rest/v1/user_settings" && method === "POST") return json(route, [request.postDataJSON()]);
-    if (pathname === "/rest/v1/rpc/save_current_chart") return json(route, [{ chart_id: chartId, reused: true }]);
-    if (pathname.startsWith("/storage/v1/object/reports/") && method === "POST") {
-      storageWrites.push({ path: pathname, headers: request.headers(), size: request.postDataBuffer()?.length || 0 });
-      return json(route, { Key: pathname });
-    }
-    if (pathname === "/rest/v1/reports" && method === "POST") {
-      reportWrites.push(request.postDataJSON());
-      return json(route, [request.postDataJSON()], 201);
-    }
-    return json(route, []);
-  });
+  await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", mockReportCloud);
 
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
   await page.locator("#loginAccount").fill("report-test");
@@ -230,6 +283,18 @@ try {
   assert.deepEqual(pageErrors, []);
   checks.push({ name: "浏览器生成可解析 PDF、ZIP、恢复 JSON并覆盖云端当前报告", ok: true });
   checks.push({ name: "损坏 ZIP 会在导入写库前被拒绝", ok: true });
+  await verifyMobileZipFlow(
+    chromium,
+    { executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe" },
+    { ...devices["Pixel 5"] },
+    "Pixel 5 Android Chrome 参数",
+  );
+  await verifyMobileZipFlow(
+    webkit,
+    {},
+    { ...devices["iPhone 13"] },
+    "iPhone 13 WebKit 参数",
+  );
 } catch (error) {
   checks.push({ name: "浏览器报告与 ZIP 端到端", ok: false, error });
 } finally {

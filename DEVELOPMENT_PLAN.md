@@ -299,7 +299,7 @@
 - [x] 验证删除档案后可用 ZIP 完整恢复。
 - [x] 验证损坏、缺文件、旧版本和冲突 ZIP 的处理。
 
-阶段测试结果：`tools/stage6-checks.mjs` 6 项通过，实际生成并解析多页 PDF、单档案 ZIP 和恢复 JSON，验证固定 Storage 路径覆盖、事务恢复权限和损坏 ZIP 写库前拒绝；`report-restore` 已部署为 ACTIVE 且启用 JWT。
+阶段测试结果：`tools/stage6-checks.mjs` 8 项通过，实际生成并解析多页 PDF、单档案 ZIP 和恢复 JSON，验证固定 Storage 路径覆盖、事务恢复权限和损坏 ZIP 写库前拒绝；Pixel 5 Android Chrome 参数和 iPhone 13 WebKit 参数均触发 ZIP 下载并完成导入预览，且确认前不调用恢复接口；`report-restore` 已部署为 ACTIVE 且启用 JWT。
 
 阶段完成条件：PRD 第 14.14 至 14.16 节全部通过。
 
@@ -350,7 +350,7 @@
 - [x] 运行 Edge Function 身份、输入、输出和幂等检查。
 - [x] 运行前端构建、静态资源和敏感信息扫描。
 
-自动验证结果：`product-38` 本地与中转共 129 项、GitHub Pages 6 项，总计 135 项通过。真实登录发现并修复服务端角色缺少 PostgREST 表权限、登录地区记录为中转节点、桌面登录日志弹层超出 APP、AI 时间窗口未以当前日期起算、报告关系对象显示为 JSON、删除档案时 Storage 与数据库可能出现部分完成六项问题；迁移已应用至 `202611040009`，弹层已在 320、390、430 和 1024px 视口验证，正式线上登录页另以 1280px Microsoft Edge、Pixel 5 Android Chrome 参数和 iPhone 13 WebKit 参数验证。
+自动验证结果：`product-38` 本地与中转共 131 项、GitHub Pages 6 项，总计 137 项通过。真实登录发现并修复服务端角色缺少 PostgREST 表权限、登录地区记录为中转节点、桌面登录日志弹层超出 APP、AI 时间窗口未以当前日期起算、报告关系对象显示为 JSON、删除档案时 Storage 与数据库可能出现部分完成六项问题；迁移已应用至 `202611040009`，弹层已在 320、390、430 和 1024px 视口验证，正式线上登录页另以 1280px Microsoft Edge、Pixel 5 Android Chrome 参数和 iPhone 13 WebKit 参数验证。
 
 ### 10.2 端到端验证
 
