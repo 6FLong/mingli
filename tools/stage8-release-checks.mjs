@@ -67,8 +67,8 @@ check("公开配置只包含可公开值且版本与发布一致", () => {
     "supabaseUrl",
   ]);
   assert.equal(config.supabaseUrl, "https://resonant-brioche-af680c.netlify.app/api/supabase");
-  assert.match(app, /const APP_VERSION = "product-36"/);
-  assert.match(html, /应用版本<\/span><b>product-36<\/b>/);
+  assert.match(app, /const APP_VERSION = "product-37"/);
+  assert.match(html, /应用版本<\/span><b>product-37<\/b>/);
 });
 
 check("前端不包含管理员身份、服务端密钥或凭据", () => {

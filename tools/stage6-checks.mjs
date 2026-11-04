@@ -89,7 +89,18 @@ const facts = {
   strength: { label: "偏弱", summary: "冬月火弱，得木火生扶。" },
   pattern: { name: "七杀格", status: "初步成立", basis: ["月令主气取格。"] },
   usefulGod: { strategy: "扶身制杀", primaryGods: ["印"], favorableGods: ["木", "火"], unfavorableGods: ["水"] },
-  relations: { natal: [], active: [] },
+  relations: {
+    natal: [{
+      name: "卯酉六冲", type: "六冲", members: ["卯", "酉"],
+      sources: [{ label: "月柱", source: "原局" }, { label: "时柱", source: "原局" }],
+      effect: "地支相冲，主位置、关系或状态发生明显牵动",
+    }],
+    active: [{
+      name: "午未六合", type: "六合", members: ["午", "未"],
+      sources: [{ label: "当前大运", source: "大运" }, { label: "当前流年", source: "流年" }],
+      effect: "地支六合，是否成化仍需看月令和透干",
+    }],
+  },
   luck: { current: { name: "乙酉大运" } }, annual: { name: "丙午" }, warnings: ["当前规则仍有传统暂行项。"],
 };
 const chart = {
@@ -177,6 +188,7 @@ try {
       zipNames: [...entries.keys()],
       recovery,
       base: pkg.base,
+      relationItems: pkg.presentation.sections.find((section) => section.title === "关系与岁运")?.items || [],
     };
   }, profileId);
   assert.match(packageInfo.pdfPrefix, /^%PDF-1\.4/);
@@ -190,6 +202,10 @@ try {
   assert.equal(packageInfo.recovery.messages.length, 2);
   assert.doesNotMatch(JSON.stringify(packageInfo.recovery), /access_token|refresh_token|DEEPSEEK_API_KEY|service_role/i);
   assert.equal(packageInfo.base, "北京-本人报告测试-1990-01-02-命理分析报告");
+  assert.deepEqual(packageInfo.relationItems.map((item) => item.label), ["卯酉六冲", "午未六合"]);
+  assert.match(packageInfo.relationItems[0].text, /涉及月柱、时柱：地支相冲/);
+  assert.match(packageInfo.relationItems[1].text, /当前大运（大运）、当前流年（流年）/);
+  assert.doesNotMatch(JSON.stringify(packageInfo.relationItems), /\"sources\"|\"members\"|\"scope\"/);
 
   await page.evaluate((id) => window.MingliReportClient.refreshProfileReport(id), profileId);
   assert.equal(storageWrites.length, 1);

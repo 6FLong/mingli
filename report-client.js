@@ -80,6 +80,28 @@
     return String(value);
   }
 
+  function relationPresentation(item) {
+    const type = String(item?.type || "").trim();
+    const members = Array.isArray(item?.members) ? item.members.filter(Boolean).join("") : "";
+    const label = String(item?.name || `${members}${type}` || "干支关系").trim();
+    const sources = Array.isArray(item?.sources)
+      ? item.sources
+        .map((source) => {
+          const position = String(source?.label || "").trim();
+          const layer = String(source?.source || "").trim();
+          if (!position) return "";
+          return layer && layer !== "原局" ? `${position}（${layer}）` : position;
+        })
+        .filter(Boolean)
+      : [];
+    const effect = String(item?.effect || item?.explanation || item?.description || "").trim();
+    const details = [];
+    if (sources.length) details.push(`涉及${sources.join("、")}`);
+    if (effect) details.push(effect);
+    if (!details.length && members) details.push(`${members}形成${type || "干支关系"}`);
+    return { label, text: details.join("：") || "该关系已由排盘引擎识别。" };
+  }
+
   function reportPresentation(data, generatedAt = new Date().toISOString()) {
     const { profile, chart, summary, report } = data;
     const facts = chart.facts || {};
@@ -117,11 +139,7 @@
       {
         title: "关系与岁运",
         items: relationItems.length
-          ? relationItems.map((item) => ({
-              label: item.name || item.type || "关系",
-              text: item.explanation || item.description || factText(item),
-              factRefs: item.factRefs || [],
-            }))
+          ? relationItems.map((item) => ({ ...relationPresentation(item), factRefs: item.factRefs || [] }))
           : [{ text: "当前结构化命盘未记录需要单列的合冲刑害关系。" }],
       },
       {
