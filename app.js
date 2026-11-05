@@ -21,7 +21,6 @@ const viewAllQuestionsButton = document.querySelector("#viewAllQuestions");
 const questionHistoryList = document.querySelector("#questionHistoryList");
 const archiveSearch = document.querySelector("#archiveSearch");
 const archiveList = document.querySelector("#archiveList");
-const expiredProfileCount = document.querySelector("#expiredProfileCount");
 const profileCountEls = Array.from(document.querySelectorAll("[data-profile-count]"));
 const profileModal = document.querySelector("#profileModal");
 const profileModalTitle = document.querySelector("#profileModalTitle");
@@ -77,7 +76,7 @@ const CHART_STORE = "charts";
 const QUESTION_STORE = "questions";
 const BACKUP_STORE = "backups";
 const CURRENT_PROFILE_KEY = "currentProfileId";
-const APP_VERSION = "product-41";
+const APP_VERSION = "product-42";
 const RULESET_LABEL = "《四柱预测学》子平法口径（未核对处按传统子平法）";
 const RULESET_PROVENANCE = Object.freeze({
   primarySource: {
@@ -2698,7 +2697,7 @@ function createArchiveCard(profile) {
   card.dataset.expired = String(expiry.expired);
 
   const avatar = createElement("i", "avatar-mark", profile.avatar);
-  const body = createElement("div");
+  const body = createElement("div", "archive-card-content");
   const titleRow = createElement("div", "archive-title-row");
   titleRow.append(createElement("h2", "", profile.name));
   if (profile.isSelf) {
@@ -2708,7 +2707,7 @@ function createArchiveCard(profile) {
     titleRow.append(createElement("span", "current-badge", "当前"));
   }
   if (expiry.expired) {
-    titleRow.append(createElement("span", "expired-badge", expiry.overdueDays ? `已到期 ${expiry.overdueDays} 天` : "已到期"));
+    titleRow.append(createElement("span", "expired-badge", expiry.overdueDays ? `已过期 ${expiry.overdueDays} 天` : "已过期"));
   }
   body.append(
     titleRow,
@@ -2879,7 +2878,6 @@ function renderProfiles() {
   );
   archiveCards = Array.from(document.querySelectorAll(".archive-card"));
   profilePickerItems = Array.from(document.querySelectorAll("#profilePickerList [data-pick-profile]"));
-  expiredProfileCount.textContent = String(profiles.filter((profile) => getProfileExpiry(profile).expired).length);
   updateProfileCount();
   applyArchiveSearch();
   renderQuestionHistory();
@@ -4632,7 +4630,7 @@ function filterProfilePicker() {
 function setQuestionTag(tag) {
   currentQuestionTag = tag || "自定义";
   questionChips.forEach((item) => {
-    item.classList.toggle("is-selected", item.textContent.trim() === currentQuestionTag);
+    item.classList.toggle("is-selected", (item.dataset.questionType || item.textContent.trim()) === currentQuestionTag);
   });
 }
 
@@ -4789,9 +4787,10 @@ document.addEventListener("click", (event) => {
 
   const chip = event.target.closest("#questionChips button");
   if (chip) {
-    const tag = chip.textContent.trim();
+    const tag = chip.dataset.questionType || chip.textContent.trim();
     setQuestionTag(tag);
-    questionText.value = questionMap[tag] || tag;
+    questionText.value = chip.dataset.question || questionMap[tag] || tag;
+    questionText.focus({ preventScroll: true });
     hideResult();
     return;
   }
@@ -4845,15 +4844,6 @@ calendarTypeInputs.forEach((item) => {
 document.querySelector("#clearSearch").addEventListener("click", () => {
   archiveSearch.value = "";
   resetArchiveFilters();
-  applyArchiveSearch();
-});
-
-document.querySelector("#openExpiredProfiles").addEventListener("click", () => {
-  activeFilter = "expired";
-  document.querySelectorAll("[data-filter]").forEach((item) => {
-    item.classList.toggle("is-selected", item.dataset.filter === "expired");
-  });
-  goTo("profiles");
   applyArchiveSearch();
 });
 

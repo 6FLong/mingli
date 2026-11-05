@@ -71,6 +71,15 @@ check("退出先清理本机会话且不因网络失败残留", () => {
   assert.match(logoutBlock, /catch\(\(\) => undefined\)/);
 });
 
+check("登录后 30 分钟无操作会自动退出", () => {
+  assert.match(authUiSource, /IDLE_TIMEOUT_MS = 30 \* 60 \* 1000/);
+  assert.match(authUiSource, /mingli\.auth\.last-activity\.v1/);
+  assert.match(authUiSource, /checkInactivity/);
+  assert.match(authUiSource, /已因 30 分钟未操作自动退出/);
+  assert.match(authUiSource, /visibilitychange/);
+  assert.match(authUiSource, /event\.key === global\.MingliCloud\?\.sessionKey/);
+});
+
 check("网络失败统一为中文提示且不会误清除可重试会话", () => {
   assert.match(cloudSource, /code: "network_unreachable"/);
   assert.match(cloudSource, /无法连接云端服务，请检查网络或切换网络后重试/);

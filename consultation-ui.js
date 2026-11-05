@@ -141,6 +141,12 @@
     loadEarlierButton.hidden = !state.hasEarlier;
   }
 
+  function revealLatestMessage() {
+    global.requestAnimationFrame(() => {
+      thread.lastElementChild?.scrollIntoView({ block: "end", behavior: "auto" });
+    });
+  }
+
   function renderConversationPicker() {
     if (!state.conversations.length) {
       pickerList.replaceChildren(emptyState("还没有历史会话", "发送第一个问题后会自动建立会话。"));
@@ -174,6 +180,7 @@
 
   async function loadMessages(conversationId, options = {}) {
     const generation = state.generation;
+    const previousFirstMessageId = options.prepend ? thread.firstElementChild?.dataset.messageId : null;
     const rows = await client.listMessages(conversationId, options.before || null, 30);
     if (generation !== state.generation || conversationId !== state.conversationId) return;
     if (options.prepend) state.messages = [...rows, ...state.messages];
@@ -181,6 +188,13 @@
     state.oldestMessageAt = state.messages[0]?.created_at || null;
     state.hasEarlier = rows.length === 30;
     renderMessages();
+    if (options.prepend && previousFirstMessageId) {
+      global.requestAnimationFrame(() => {
+        thread.querySelector(`[data-message-id="${CSS.escape(previousFirstMessageId)}"]`)?.scrollIntoView({ block: "start" });
+      });
+    } else if (!options.prepend) {
+      revealLatestMessage();
+    }
   }
 
   async function loadProfile(profileId) {

@@ -41,6 +41,24 @@ check("首页不保留无依据评分和原型入口", () => {
 
 check("档案筛选符合正式关系标签", () => {
   assert.deepEqual([...html.matchAll(/data-filter="([^"]+)"/g)].map((match) => match[1]), ["all", "本人", "家人", "客户", "expired"]);
+  assert.match(app, /createElement\("span", "expired-badge"[\s\S]*?已过期/);
+  assert.doesNotMatch(html, /id="openExpiredProfiles"|id="expiredProfileCount"|待处理客户/);
+});
+
+check("首页咨询区使用五个正式维度且不遮挡历史", () => {
+  const expected = ["事业与发展", "感情与婚姻", "财运与财富观", "家庭与人际关系", "年度运势分析"];
+  for (const label of expected) assert.match(html, new RegExp(`<strong>${label}</strong>`));
+  assert.equal((html.match(/data-question-type=/g) || []).length, 5);
+  assert.match(css, /\.question-compose\s*\{[\s\S]*?position:\s*fixed/);
+  assert.match(css, /home-workspace\[data-home-panel="conversation"\][\s\S]*?padding-bottom:\s*158px/);
+});
+
+check("档案搜索不会触发 iPhone 自动缩放且我的页面不显示分组标题", () => {
+  assert.match(css, /@media \(max-width:\s*767px\)[\s\S]*?input,[\s\S]*?font-size:\s*16px !important/);
+  assert.doesNotMatch(html, /<section class="settings-group">\s*<h2>(?:账户|数据|应用)<\/h2>/);
+  assert.ok(html.indexOf('id="logoutAccount"') > html.indexOf("应用版本"));
+  assert.match(css, /\.archive-card \.archive-card-main\s*\{[\s\S]*?background:\s*transparent/);
+  assert.match(css, /\.archive-card \.archive-more\s*\{[\s\S]*?width:\s*44px/);
 });
 
 check("三入口导航、账户弹层与手机窄屏有稳定尺寸规则", () => {
@@ -113,6 +131,8 @@ async function verifyMobileBusinessFlow(browserType, launchOptions, contextOptio
     assert.equal(await page.locator('[data-home-panel="report"]').isVisible(), true);
     await page.locator('[data-go="profiles"]').last().tap();
     assert.equal(await page.locator('[data-screen="profiles"]').isVisible(), true);
+    const archiveSearchFontSize = await page.locator("#archiveSearch").evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
+    assert.ok(archiveSearchFontSize >= 16, `${name} 档案搜索框仍可能触发页面缩放`);
     await page.locator('[data-go="mine"]').last().tap();
     assert.equal(await page.locator('[data-screen="mine"]').isVisible(), true);
     await page.locator("#openLoginLogs").tap();
@@ -126,6 +146,16 @@ async function verifyMobileBusinessFlow(browserType, launchOptions, contextOptio
     }));
     assert.ok(layout.bodyWidth <= layout.viewportWidth, `${name} 页面存在横向溢出`);
     assert.ok(Math.abs(layout.navBottom - layout.viewportHeight) <= 1, `${name} 底部导航未贴合视口`);
+    await page.locator("#closeLoginLogs").tap();
+    await page.locator('[data-go="home"]').last().tap();
+    await page.locator('[data-home-view="conversation"]').tap();
+    const conversationLayout = await page.evaluate(() => {
+      const compose = document.querySelector(".question-compose").getBoundingClientRect();
+      const nav = document.querySelector(".tabbar").getBoundingClientRect();
+      return { composeBottom: compose.bottom, navTop: nav.top, chipCount: document.querySelectorAll("#questionChips button").length };
+    });
+    assert.equal(conversationLayout.chipCount, 5, `${name} 咨询维度数量不正确`);
+    assert.ok(conversationLayout.composeBottom <= conversationLayout.navTop + 2, `${name} 咨询输入区遮挡底部导航`);
     assert.deepEqual(pageErrors, [], `${name} 页面脚本报错`);
     checks.push({ name: `${name} 登录后三入口、三视图与底部弹层`, ok: true });
   } catch (error) {
@@ -144,7 +174,8 @@ try {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.route("https://resonant-brioche-af680c.netlify.app/api/supabase/**", mockCloud);
-    await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+    await page.goto(`${baseUrl}?release=product-35`, { waitUntil: "domcontentloaded" });
+    assert.equal(new URL(page.url()).searchParams.has("release"), false, `${width}px 仍保留旧版本参数`);
     await page.locator("#loginAccount").fill("layout-test");
     await page.locator("#loginPassword").fill("layout-test");
     await page.locator("#loginSubmit").click();
@@ -188,6 +219,15 @@ try {
       assert.ok(Math.abs(overlay.modalLeft - overlay.appLeft) <= 1, "桌面弹层左侧未对齐 APP");
       assert.ok(Math.abs(overlay.modalRight - overlay.appRight) <= 1, "桌面弹层右侧未对齐 APP");
       assert.ok(Math.abs(overlay.sheetWidth - overlay.modalWidth) <= 1, "登录日志内容未限制在弹层内");
+    }
+    if (width === 390) {
+      const autoLoggedOut = await page.evaluate(async () => {
+        localStorage.setItem("mingli.auth.last-activity.v1", String(Date.now() - window.MingliAuthUi.idleTimeoutMs - 1000));
+        return window.MingliAuthUi.checkInactivity();
+      });
+      assert.equal(autoLoggedOut, true, "30 分钟无操作没有触发自动退出");
+      await page.locator("#authGate").waitFor({ state: "visible" });
+      assert.equal(await page.locator("#loginStatus").textContent(), "已因 30 分钟未操作自动退出，请重新登录");
     }
     assert.deepEqual(pageErrors, [], `${width}px 页面脚本报错`);
     await page.close();

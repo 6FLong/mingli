@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -232,6 +233,28 @@ try {
   await page.locator("#recentQuestionList .chat-empty").waitFor({ state: "visible" });
   assert.match(await page.locator("#recentQuestionList .chat-empty").innerText(), /还没有咨询记录/);
 
+  await page.locator('[data-go="profiles"]').last().click();
+  await page.locator("#archiveList .archive-card").first().waitFor({ state: "visible" });
+  const archiveLayout = await page.locator("#archiveList .archive-card").evaluateAll((cards) => cards.map((card) => {
+    const cardRect = card.getBoundingClientRect();
+    const mainRect = card.querySelector(".archive-card-main").getBoundingClientRect();
+    const moreRect = card.querySelector(".archive-more").getBoundingClientRect();
+    return {
+      mainInside: mainRect.left >= cardRect.left && mainRect.right <= cardRect.right,
+      moreInside: moreRect.left >= cardRect.left && moreRect.right <= cardRect.right,
+      moreWidth: moreRect.width,
+      mainBackground: getComputedStyle(card.querySelector(".archive-card-main")).backgroundColor,
+    };
+  }));
+  assert.ok(archiveLayout.every((item) => item.mainInside && item.moreInside && Math.abs(item.moreWidth - 44) <= 1));
+  assert.ok(archiveLayout.every((item) => item.mainBackground === "rgba(0, 0, 0, 0)"));
+  await page.locator('[data-go="home"]').last().click();
+
+  const careerDimension = page.locator('#questionChips [data-question-type="事业"]');
+  await careerDimension.click();
+  assert.equal(await page.locator("#questionText").inputValue(), "请分析我的工作方向、职业变化和事业发展趋势。");
+  assert.equal(await careerDimension.evaluate((element) => element.classList.contains("is-selected")), true);
+
   const question = "我有一个新工作机会，适合接受吗？";
   await page.locator("#questionText").fill(question);
   await page.locator("#generateResult").click();
@@ -248,6 +271,20 @@ try {
     assert.match(answerText, new RegExp(expected));
   }
   assert.equal(await page.locator("#questionText").inputValue(), "");
+
+  if (process.env.MINGLI_CAPTURE_VISUALS === "YES") {
+    const artifacts = path.join(root, "tools", ".artifacts");
+    fs.mkdirSync(artifacts, { recursive: true });
+    await page.waitForTimeout(1900);
+    await page.screenshot({ path: path.join(artifacts, "product42-home.png"), fullPage: false });
+    await page.locator('[data-go="profiles"]').last().click();
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: path.join(artifacts, "product42-profiles.png"), fullPage: false });
+    await page.locator('[data-go="mine"]').last().click();
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: path.join(artifacts, "product42-mine.png"), fullPage: false });
+    await page.locator('[data-go="home"]').last().click();
+  }
 
   await page.locator("[data-open-profile-picker]").click();
   await page.locator(`#profilePickerList [data-pick-profile][data-profile-id="${profileTwo}"]`).click();

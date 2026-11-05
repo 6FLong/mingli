@@ -5,11 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#e5f1ef" />
     <title>命理</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=product-41" />
+    <link rel="canonical" href="https://6flong.github.io/mingli/" />
+    <script>
+      (() => {
+        const url = new URL(window.location.href);
+        if (!url.searchParams.has("release")) return;
+        url.searchParams.delete("release");
+        history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      })();
+    </script>
+    <link rel="manifest" href="./manifest.webmanifest?v=product-42" />
     <link rel="icon" href="./icon-192.png" sizes="192x192" type="image/png" />
     <link rel="apple-touch-icon" href="./icon-192.png" />
-    <link rel="stylesheet" href="./styles.css?v=product-41" />
-    <script src="./app-config.js?v=product-41"></script>
+    <link rel="stylesheet" href="./styles.css?v=product-42" />
+    <script src="./app-config.js?v=product-42"></script>
   </head>
   <body class="auth-pending">
     <section class="auth-gate" id="authGate" aria-labelledby="loginTitle">
@@ -79,20 +88,25 @@
 
             <section class="workspace-section question-compose">
               <div class="chip-grid" id="questionChips" aria-label="快捷问题">
-                <button type="button">今年运势</button>
-                <button type="button">财运</button>
-                <button type="button">事业</button>
-                <button type="button">婚姻感情</button>
-                <button type="button">健康</button>
-                <button type="button">子女生育</button>
-                <button type="button">家庭居住</button>
-                <button type="button">合同风险</button>
-                <button type="button">出行迁移</button>
-                <button type="button">近三年</button>
+                <button type="button" data-question-type="事业" data-question="请分析我的工作方向、职业变化和事业发展趋势。" title="工作方向、职业变化、事业发展趋势">
+                  <strong>事业与发展</strong><small>工作方向与职业变化</small>
+                </button>
+                <button type="button" data-question-type="婚姻感情" data-question="请分析我的感情模式、相处特点和关系中需要注意的问题。" title="感情模式、相处特点、关系中的问题">
+                  <strong>感情与婚姻</strong><small>相处特点与关系问题</small>
+                </button>
+                <button type="button" data-question-type="财运" data-question="请分析我的财富观念、风险意识和财务行为倾向。" title="财富观念、风险意识、财务行为倾向">
+                  <strong>财运与财富观</strong><small>财富观念与风险意识</small>
+                </button>
+                <button type="button" data-question-type="家庭居住" data-question="请分析我的家庭关系、沟通模式和人际互动特点。" title="家庭关系、沟通模式、人际互动">
+                  <strong>家庭与人际关系</strong><small>沟通模式与人际互动</small>
+                </button>
+                <button type="button" data-question-type="今年运势" data-question="请分析我最近一年的整体运势和需要留意的阶段。" title="最近一年的命理分析和阶段性提醒">
+                  <strong>年度运势分析</strong><small>年度趋势与阶段提醒</small>
+                </button>
               </div>
               <label class="question-input">
-                <span>输入要咨询的具体问题</span>
-                <textarea id="questionText" rows="3" placeholder="例如：我最近有一个新工作机会，适合接受吗？"></textarea>
+                <span class="visually-hidden">输入要咨询的具体问题</span>
+                <textarea id="questionText" rows="1" placeholder="输入要咨询的具体问题"></textarea>
               </label>
               <button class="primary-button" type="button" id="generateResult">发送问题</button>
             </section>
@@ -179,7 +193,7 @@
               <button type="button" data-filter="本人">本人</button>
               <button type="button" data-filter="家人">家人</button>
               <button type="button" data-filter="客户">客户</button>
-              <button type="button" data-filter="expired">已到期</button>
+              <button type="button" data-filter="expired">已过期</button>
             </div>
           </section>
 
@@ -194,7 +208,6 @@
 
           <section class="panel data-panel">
             <div>
-              <p class="eyebrow">云端数据</p>
               <h2>已保存 <span data-profile-count>0</span> 份档案</h2>
               <p>档案、命盘和咨询记录由当前管理员账号保存。</p>
             </div>
@@ -204,7 +217,6 @@
           </section>
 
           <section class="settings-group">
-            <h2>账户</h2>
             <div class="settings-list">
               <div class="setting-row">
                 <span><i class="setting-icon">账</i>当前账户</span>
@@ -212,14 +224,11 @@
               </div>
               <button type="button" id="openLoginLogs"><span><i class="setting-icon">记</i>登录日志</span><b>查看</b></button>
               <button type="button" id="openPasswordModal"><span><i class="setting-icon">密</i>修改密码</span><b>修改</b></button>
-              <button type="button" class="danger-setting" id="logoutAccount"><span><i class="setting-icon">退</i>退出登录</span><b></b></button>
             </div>
           </section>
 
           <section class="settings-group">
-            <h2>数据</h2>
             <div class="settings-list">
-              <button type="button" id="openExpiredProfiles"><span><i class="setting-icon">期</i>待处理客户</span><b id="expiredProfileCount">0</b></button>
               <button type="button" id="exportData"><span><i class="setting-icon">↓</i>导出全部分析报告</span><b>导出</b></button>
               <button type="button" id="importData"><span><i class="setting-icon">↑</i>导入报告备份</span><b>导入</b></button>
               <button type="button" id="migrateLegacyData" hidden><span><i class="setting-icon">迁</i>迁移本机旧档案</span><b><span id="legacyMigrationCount">0</span> 份</b></button>
@@ -228,11 +237,16 @@
           </section>
 
           <section class="settings-group">
-            <h2>应用</h2>
             <div class="settings-list">
               <div class="setting-row"><span><i class="setting-icon">云</i>云端连接</span><b>正常</b></div>
-              <div class="setting-row"><span><i class="setting-icon">版</i>应用版本</span><b>product-41</b></div>
+              <div class="setting-row"><span><i class="setting-icon">版</i>应用版本</span><b>product-42</b></div>
               <div class="setting-row"><span><i class="setting-icon">私</i>隐私范围</span><b>仅管理员</b></div>
+            </div>
+          </section>
+
+          <section class="settings-group settings-logout">
+            <div class="settings-list">
+              <button type="button" class="danger-setting" id="logoutAccount"><span><i class="setting-icon">退</i>退出登录</span><b></b></button>
             </div>
           </section>
         </section>
@@ -503,15 +517,15 @@
       </section>
     </div>
 
-    <script src="./cloud-client.js?v=product-41"></script>
+    <script src="./cloud-client.js?v=product-42"></script>
     <script src="./cloud-data.js?v=2026110306"></script>
     <script src="./consultation-client.js?v=2026110306"></script>
-    <script src="./report-utils.js?v=product-41"></script>
-    <script src="./report-client.js?v=product-41"></script>
-    <script src="./app.js?v=product-41"></script>
-    <script src="./consultation-ui.js?v=2026110306"></script>
-    <script src="./report-ui.js?v=product-41"></script>
-    <script src="./auth-ui.js?v=2026110401"></script>
-    <script src="./account-ui.js?v=2026110306"></script>
+    <script src="./report-utils.js?v=product-42"></script>
+    <script src="./report-client.js?v=product-42"></script>
+    <script src="./app.js?v=product-42"></script>
+    <script src="./consultation-ui.js?v=product-42"></script>
+    <script src="./report-ui.js?v=product-42"></script>
+    <script src="./auth-ui.js?v=product-42"></script>
+    <script src="./account-ui.js?v=product-42"></script>
   </body>
 </html>
