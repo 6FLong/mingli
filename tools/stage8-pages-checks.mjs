@@ -64,6 +64,10 @@ assert.match(exportBody, /buildProfilePackage\(profile\.id\)/);
 assert.doesNotMatch(exportBody, /refreshProfileReport\(profile\.id\)/);
 assert.match(exportBody, /导出说明\.txt/);
 assert.match(exportBody, /!manifest\.profiles\.length/);
+const reportUtilsResponse = await fetch(`${baseUrl}report-utils.js?v=product-40`, { cache: "no-store" });
+assert.equal(reportUtilsResponse.status, 200);
+const reportUtilsSource = await reportUtilsResponse.text();
+assert.match(reportUtilsSource, /ensure\([\s\S]*?context\.font = font;/);
 assert.equal((await fetch(`${baseUrl}sw.js`, { cache: "no-store" })).status, 404);
 
 await verifyLoginPage(chromium, { executablePath: chromePath }, { viewport: { width: 390, height: 844 } });
@@ -78,4 +82,5 @@ console.log("OK 1280px Microsoft Edge 登录页为空、无横向溢出且脚本
 console.log("OK Pixel 5 Android Chrome 参数下登录页触控布局正常");
 console.log("OK iPhone 13 WebKit 参数下登录页布局与脚本正常");
 console.log("OK 线上全部导出使用 product-40 的本地生成与空 ZIP 防护");
-console.log("\n7 stage-eight Pages checks passed.");
+console.log("OK 线上 PDF 生成器包含跨页字体恢复逻辑");
+console.log("\n8 stage-eight Pages checks passed.");
