@@ -2688,6 +2688,15 @@ function getProfileActivityLabel(profile) {
   return "尚无咨询记录";
 }
 
+function getProfileCreatedLabel(profile) {
+  const timestamp = Number(profile?.createdAt || 0);
+  if (!timestamp || !Number.isFinite(timestamp)) return "首次维护日期未知";
+  const parts = getBeijingDateParts(new Date(timestamp));
+  const month = String(parts.month).padStart(2, "0");
+  const day = String(parts.day).padStart(2, "0");
+  return `首次维护 ${parts.year}-${month}-${day}`;
+}
+
 function createArchiveCard(profile) {
   const isCurrent = profile.id === currentProfileId;
   const expiry = getProfileExpiry(profile);
@@ -2712,7 +2721,8 @@ function createArchiveCard(profile) {
   body.append(
     titleRow,
     createElement("p", "", profile.meta),
-    createElement("span", "", getProfileActivityLabel(profile)),
+    createElement("span", "archive-created-at", getProfileCreatedLabel(profile)),
+    createElement("span", "archive-activity", getProfileActivityLabel(profile)),
   );
 
   const main = createElement("button", "archive-card-main");

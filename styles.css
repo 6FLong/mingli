@@ -3546,6 +3546,20 @@ body.modal-open {
   margin: 4px 0 2px;
 }
 
+.archive-card-content > span {
+  display: block;
+}
+
+.archive-card-content .archive-created-at {
+  margin-bottom: 1px;
+  color: #526764;
+}
+
+.archive-card-content .archive-activity {
+  color: #7a8886;
+  font-size: 11px;
+}
+
 .archive-card .archive-more {
   align-self: stretch;
   width: 44px;

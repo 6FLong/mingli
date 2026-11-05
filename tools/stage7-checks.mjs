@@ -160,6 +160,17 @@ function profile(id, name, relation, ageDays, isSelf = false) {
   };
 }
 
+function beijingDate(value) {
+  const parts = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(value));
+  const part = (type) => parts.find((item) => item.type === type)?.value || "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 const records = [
   profile(ids.self, "本人", "本人", 200, true),
   profile(ids.family, "家人", "家人", 200),
@@ -245,11 +256,22 @@ try {
   await page.locator('[data-go="profiles"]').last().click();
   await page.locator("#archiveList .archive-card").first().waitFor({ state: "visible" });
 
+  assert.equal(await page.locator("#archiveList .archive-created-at").count(), records.length);
+  assert.match(
+    await page.locator(`[data-profile-id="${ids.self}"]`).first().innerText(),
+    new RegExp(`首次维护 ${beijingDate(records[0].created_at)}`),
+  );
+  assert.match(
+    await page.locator(`[data-profile-id="${ids.day90}"]`).first().innerText(),
+    new RegExp(`首次维护 ${beijingDate(records[3].created_at)}`),
+  );
   assert.equal(await page.locator(".expired-badge").count(), 2);
   assert.doesNotMatch(await page.locator(`[data-profile-id="${ids.self}"]`).first().innerText(), /已过期/);
   assert.doesNotMatch(await page.locator(`[data-profile-id="${ids.family}"]`).first().innerText(), /已过期/);
   assert.match(await page.locator(`[data-profile-id="${ids.recentlyConsulted}"]`).first().innerText(), /最后咨询/);
   assert.doesNotMatch(await page.locator(`[data-profile-id="${ids.recentlyConsulted}"]`).first().innerText(), /已过期/);
+  fs.mkdirSync(path.join(root, "tools", ".artifacts"), { recursive: true });
+  await page.screenshot({ path: path.join(root, "tools", ".artifacts", "archive-created-date-mobile.png"), fullPage: true });
 
   await page.locator(`[data-profile-actions][data-profile-id="${ids.day89}"]`).click();
   assert.equal(await page.locator("#updateProfileReportAction").isVisible(), false);
@@ -286,7 +308,7 @@ try {
   await page.locator(`[data-profile-actions][data-profile-id="${ids.day91}"]`).waitFor({ state: "detached" });
   assert.equal(deleteAttempts.get(ids.day91), 2);
   assert.deepEqual(pageErrors, []);
-  checks.push({ name: "浏览器在档案页显示过期筛选和操作菜单，并支持取消与安全重试删除", ok: true });
+  checks.push({ name: "浏览器显示首次维护日期、过期筛选和操作菜单，并支持取消与安全重试删除", ok: true });
 } catch (error) {
   checks.push({ name: "浏览器到期提醒与删除流程", ok: false, error });
 } finally {
