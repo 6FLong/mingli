@@ -2,7 +2,7 @@
 
 > 文档状态：执行基线 2.0
 > 更新日期：2026-11-05
-> 当前前端版本：`product-42`（正式版本）
+> 当前前端版本：`product-43`（正式版本）
 > 需求与验收依据：`PRODUCT_REQUIREMENTS.md`
 > 本文档只记录开发执行步骤、验证和完成状态，不记录管理员准备事项。
 
@@ -253,7 +253,7 @@
 - [x] 正式回答已验证直接对应原问题并引用当前 `bazi-facts-v1`；多档案上下文隔离、不同事实输出和切换清空通过自动浏览器检查，真实多档案留作有实际家人或客户后验收。
 - [x] 验证失败、超时、重试、切档案和长历史情况下不串数据。
 
-阶段测试结果：`tools/stage5-contract-checks.mjs` 11 项、`tools/stage5-frontend-checks.mjs` 6 项通过；Pixel 5 Android Chrome 参数和 iPhone 13 WebKit 参数均以触控提交自定义问题，并验证同一会话连续追问；`ai-consult` 版本 3 已部署为 ACTIVE 且启用 JWT。管理员本人真实事业问题及同会话追问已完成，回答引用当前 `bazi-facts-v1`，历史摘要与报告核心连续更新；实测发现并修复时间类回答未锚定当前北京时间的问题。
+阶段测试结果：`tools/stage5-contract-checks.mjs` 12 项、`tools/stage5-frontend-checks.mjs` 6 项通过；Pixel 5 Android Chrome 参数和 iPhone 13 WebKit 参数均以触控提交自定义问题，并验证同一会话连续追问；`ai-consult` 版本 4 已部署为 ACTIVE 且启用 JWT。管理员本人真实事业问题及同会话追问已完成，回答引用当前 `bazi-facts-v1`，历史摘要与报告核心连续更新；方向性问题要求先给明确倾向，回答先展示，云端同步在后台继续，上传状态不再替代答复。
 
 阶段完成条件：PRD 第 14.11 至 14.13 节全部通过。
 
@@ -300,7 +300,7 @@
 - [x] 验证删除档案后可用 ZIP 完整恢复。
 - [x] 验证损坏、缺文件、旧版本和冲突 ZIP 的处理。
 
-阶段测试结果：`tools/stage6-checks.mjs` 12 项通过，实际生成并解析多页 PDF、单档案 ZIP 和恢复 JSON；长报告跨页字体正常；全部导出不依赖 Storage，尚无咨询记录的档案计入“跳过”而非失败，全部生成失败时不下载空 ZIP；Pixel 5 Android Chrome 参数和 iPhone 13 WebKit 参数均完成 ZIP 下载与导入预览；`report-restore` 已部署为 ACTIVE 且启用 JWT。
+阶段测试结果：`tools/stage6-checks.mjs` 13 项通过，实际生成并解析多页客户 PDF、完整咨询档案 PDF、单档案 ZIP 和恢复 JSON；客户报告包含现代总结、五行分布、十神分布、三年定性趋势与子平依据，长报告跨页字体正常；首页只下载可交付客户的 PDF，档案备份 ZIP 另含完整咨询记录与恢复数据。全部导出不依赖 Storage，尚无咨询记录的档案计入“跳过”而非失败，全部生成失败时不下载空 ZIP；Pixel 5 Android Chrome 参数和 iPhone 13 WebKit 参数均完成 ZIP 下载与导入预览；`report-restore` 已部署为 ACTIVE 且启用 JWT。
 
 阶段完成条件：PRD 第 14.14 至 14.16 节全部通过。
 
@@ -351,7 +351,7 @@
 - [x] 运行 Edge Function 身份、输入、输出和幂等检查。
 - [x] 运行前端构建、静态资源和敏感信息扫描。
 
-自动验证结果：`product-42` 本地与中转共 141 项、GitHub Pages 8 项，总计 149 项通过。新增验证唯一正式地址、30 分钟无操作退出、五个咨询维度、历史与底部输入区不重叠、档案列表稳定布局、iPhone 搜索不缩放和“我的”无分组标题；迁移仍为 `202611040009`。
+自动验证结果：`product-43` 本地与中转共 149 项、GitHub Pages 8 项，总计 157 项通过。新增验证 AI 回答先于后台同步、客户报告与完整档案分离、图表化报告、云端存储用量、档案首次维护日期，以及首页档案区收起后内容切换栏吸顶、下滑恢复；数据库版本为 `2026110510`，迁移已应用至 `202611050010`。
 
 ### 10.2 端到端验证
 
@@ -361,7 +361,7 @@
 - [x] 验证登录失败、网络失败、AI 超时、报告失败和导入失败后的恢复；自动失败路径与真实网络恢复通过。
 - [x] 电脑 Chrome、Microsoft Edge、Pixel 5 Android Chrome 参数、iPhone 13 WebKit 参数与 320 至 430px 响应式浏览器通过；真实 iPhone Safari 登录和 ZIP 导入预览通过。管理员明确决定本版本不再执行 Android 实机测试。
 
-真实验收进度：管理员登录、密码修改、登录日志、本人档案、自由问事、连续追问、报告同步、单档案 ZIP 和 Safari 导入预览均通过。管理员已完成真实多档案切换；`product-42` 云端只读核对确认 2 个真实档案、本人唯一、当前档案有效且命盘不串档案，全部导出成功 1、跳过 1、失败 0、云端写入 0。当前没有达到 90 天的真实客户，永久删除留作首个真实到期客户的运营复验；Android 实机按管理员决定不作为发布条件。
+真实验收进度：管理员登录、密码修改、登录日志、本人档案、自由问事、连续追问、报告同步、单档案 ZIP 和 Safari 导入预览均通过。管理员已完成真实多档案切换；云端只读核对确认 2 个真实档案、本人唯一、当前档案有效且命盘不串档案，全部导出成功 1、跳过 1、失败 0、云端写入 0。`product-43` 新增行为已由自动浏览器、PDF 渲染和正式线上资源检查覆盖。当前没有达到 90 天的真实客户，永久删除留作首个真实到期客户的运营复验；Android 实机按管理员决定不作为发布条件。
 
 ### 10.3 GitHub Pages 发布
 
@@ -373,7 +373,7 @@
 
 中转验证结果：`https://resonant-brioche-af680c.netlify.app/api/supabase` 已公开；GitHub Pages 来源的预检为 204、Supabase Auth 配置为 200、登录函数返回正常业务响应，陌生来源为 403。中转不保存服务端密钥，只转发固定项目的 Auth、REST、Storage 和 Edge Functions 路径。
 
-发布记录：前端 `product-42`，唯一正式地址 `https://6flong.github.io/mingli/`，命盘格式 `bazi-facts-v1`，报告格式 `mingli-report-v1`，备份格式 `mingli-backup-v1`，数据库迁移 `202611040009`，`ai-consult` 版本 3，`profile-delete` 版本 3。Android 实机按管理员决定豁免，首次真实过期删除列为运营复验。
+发布记录：前端 `product-43`，唯一正式地址 `https://6flong.github.io/mingli/`，命盘格式 `bazi-facts-v1`，报告格式 `mingli-report-v1`，备份格式 `mingli-backup-v1`，数据库版本 `2026110510`（迁移至 `202611050010`），`ai-consult` 版本 4，`storage-usage` 版本 1，`report-restore` 版本 1，`profile-delete` 版本 3，均为 ACTIVE 且启用 JWT。Android 实机按管理员决定豁免，首次真实过期删除列为运营复验。
 
 ### 10.4 最终审计
 
