@@ -88,9 +88,11 @@
       const size = options.size || 30;
       const lineHeight = options.lineHeight || Math.round(size * 1.65);
       const weight = options.weight || 400;
-      context.font = `${weight} ${size}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+      const font = `${weight} ${size}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+      context.font = font;
       const lines = wrapText(context, text, width - margin * 2 - (options.indent || 0));
       ensure(Math.max(lineHeight, lines.length * lineHeight) + (options.after || 0));
+      context.font = font;
       context.fillStyle = options.color || "#344441";
       lines.forEach((value) => {
         context.fillText(value, margin + (options.indent || 0), y);

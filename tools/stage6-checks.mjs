@@ -43,6 +43,11 @@ check("正式导出为 PDF 与恢复 JSON 的 ZIP", () => {
   assert.match(exportBody, /导出说明\.txt/);
 });
 
+check("报告换页后重新应用正文和标题字体", () => {
+  const reportUtilsSource = read("report-utils.js");
+  assert.match(reportUtilsSource, /const font = `\$\{weight\} \$\{size\}px[\s\S]*?ensure\([\s\S]*?context\.font = font;/);
+});
+
 check("恢复服务二次校验管理员、版本、摘要和敏感字段", () => {
   assert.match(restoreFunction, /authenticateAdministrator/);
   assert.match(restoreFunction, /mingli-backup-v1/);
@@ -238,6 +243,40 @@ try {
   await page.locator("#loginPassword").fill("report-test");
   await page.locator("#loginSubmit").click();
   await page.locator("#businessApp").waitFor({ state: "visible" });
+  const paginationFonts = await page.evaluate(async () => {
+    const prototype = CanvasRenderingContext2D.prototype;
+    const original = prototype.fillText;
+    const calls = [];
+    prototype.fillText = function captureFillText(text, x, y, maxWidth) {
+      calls.push({ text: String(text), font: this.font, y });
+      return maxWidth === undefined
+        ? original.call(this, text, x, y)
+        : original.call(this, text, x, y, maxWidth);
+    };
+    try {
+      await window.MingliReportUtils.generateReportPdf({
+        identityLine: "分页字体测试",
+        updatedAtLabel: "2026/11/05 08:30",
+        sections: [{
+          title: "跨页长内容",
+          items: Array.from({ length: 70 }, (_, index) => ({
+            label: `条目 ${index + 1}`,
+            text: "这一行用于验证报告跨页后仍然使用明确设置的中文正文字体，不会退回浏览器默认小字号。",
+          })),
+        }],
+      });
+    } finally {
+      prototype.fillText = original;
+    }
+    return calls;
+  });
+  assert.ok(paginationFonts.length > 100, "分页字体测试没有生成足够内容");
+  assert.equal(
+    paginationFonts.filter((call) => /(?:^|\s)10px\s/.test(call.font)).length,
+    0,
+    "换页后不得使用 Canvas 默认 10px 字体",
+  );
+  checks.push({ name: "长报告跨页后不退回 Canvas 默认小字体", ok: true });
   const packageInfo = await page.evaluate(async (id) => {
     const pkg = await window.MingliReportClient.buildProfilePackage(id);
     const entries = window.MingliReportUtils.readZip(pkg.zip);

@@ -2,7 +2,7 @@
 
 > 文档状态：执行基线 2.0
 > 更新日期：2026-11-04
-> 当前前端版本：`product-39`（发布候选）
+> 当前前端版本：`product-40`（发布候选）
 > 需求与验收依据：`PRODUCT_REQUIREMENTS.md`
 > 本文档只记录开发执行步骤、验证和完成状态，不记录管理员准备事项。
 
@@ -299,7 +299,7 @@
 - [x] 验证删除档案后可用 ZIP 完整恢复。
 - [x] 验证损坏、缺文件、旧版本和冲突 ZIP 的处理。
 
-阶段测试结果：`tools/stage6-checks.mjs` 10 项通过，实际生成并解析多页 PDF、单档案 ZIP 和恢复 JSON，验证固定 Storage 路径覆盖、事务恢复权限和损坏 ZIP 写库前拒绝；全部导出不依赖 Storage 上传，全部生成失败时不下载只有错误清单的空 ZIP；Pixel 5 Android Chrome 参数和 iPhone 13 WebKit 参数均触发 ZIP 下载并完成导入预览，且确认前不调用恢复接口；`report-restore` 已部署为 ACTIVE 且启用 JWT。
+阶段测试结果：`tools/stage6-checks.mjs` 12 项通过，实际生成并解析多页 PDF、单档案 ZIP 和恢复 JSON，验证固定 Storage 路径覆盖、事务恢复权限和损坏 ZIP 写库前拒绝；长报告跨页后保持明确设置的中文正文和标题字体，不退回 Canvas 默认小字号；全部导出不依赖 Storage 上传，全部生成失败时不下载只有错误清单的空 ZIP；Pixel 5 Android Chrome 参数和 iPhone 13 WebKit 参数均触发 ZIP 下载并完成导入预览，且确认前不调用恢复接口；`report-restore` 已部署为 ACTIVE 且启用 JWT。
 
 阶段完成条件：PRD 第 14.14 至 14.16 节全部通过。
 
@@ -350,7 +350,7 @@
 - [x] 运行 Edge Function 身份、输入、输出和幂等检查。
 - [x] 运行前端构建、静态资源和敏感信息扫描。
 
-自动验证结果：`product-39` 本地与中转共 135 项、GitHub Pages 7 项，总计 142 项通过。真实登录发现并修复服务端角色缺少 PostgREST 表权限、登录地区记录为中转节点、桌面登录日志弹层超出 APP、AI 时间窗口未以当前日期起算、报告关系对象显示为 JSON、删除档案时 Storage 与数据库可能出现部分完成、全部导出在云端上传失败时只产生错误清单七项问题；迁移已应用至 `202611040009`，弹层已在 320、390、430 和 1024px 视口验证，正式线上登录页另以 1280px Microsoft Edge、Pixel 5 Android Chrome 参数和 iPhone 13 WebKit 参数验证，线上 `report-client.js` 已确认包含本地生成和空 ZIP 防护。
+自动验证结果：`product-40` 本地与中转共 137 项、GitHub Pages 7 项，总计 144 项通过。真实登录发现并修复服务端角色缺少 PostgREST 表权限、登录地区记录为中转节点、桌面登录日志弹层超出 APP、AI 时间窗口未以当前日期起算、报告关系对象显示为 JSON、删除档案时 Storage 与数据库可能出现部分完成、全部导出在云端上传失败时只产生错误清单、PDF 跨页首行退回默认小字号八项问题；迁移已应用至 `202611040009`，弹层已在 320、390、430 和 1024px 视口验证，正式线上登录页另以 1280px Microsoft Edge、Pixel 5 Android Chrome 参数和 iPhone 13 WebKit 参数验证。
 
 ### 10.2 端到端验证
 
@@ -372,7 +372,7 @@
 
 中转验证结果：`https://resonant-brioche-af680c.netlify.app/api/supabase` 已公开；GitHub Pages 来源的预检为 204、Supabase Auth 配置为 200、登录函数返回正常业务响应，陌生来源为 403。中转不保存服务端密钥，只转发固定项目的 Auth、REST、Storage 和 Edge Functions 路径。
 
-发布记录：前端 `product-39`，命盘格式 `bazi-facts-v1`，报告格式 `mingli-report-v1`，备份格式 `mingli-backup-v1`，数据库迁移 `202611040009`，`ai-consult` 版本 3，`profile-delete` 版本 3。GitHub Pages 正式资源、Manifest、图标、无 Service Worker、多引擎登录页和线上全部导出修复已通过发布后冒烟；管理员本人正式数据的只读全部导出也已通过。
+发布记录：前端 `product-40`，命盘格式 `bazi-facts-v1`，报告格式 `mingli-report-v1`，备份格式 `mingli-backup-v1`，数据库迁移 `202611040009`，`ai-consult` 版本 3，`profile-delete` 版本 3。GitHub Pages 正式资源、Manifest、图标、无 Service Worker、多引擎登录页、全部导出和 PDF 分页字体需在发布后重新冒烟。
 
 ### 10.4 最终审计
 
