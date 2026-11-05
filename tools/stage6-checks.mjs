@@ -30,10 +30,14 @@ check("报告固定使用唯一私有 Storage 路径并覆盖旧文件", () => {
   assert.match(reportClientSource, /status: "failed"/);
 });
 
-check("正式导出为 PDF 与恢复 JSON 的 ZIP", () => {
+check("客户 PDF 与完整留存 ZIP 职责分离", () => {
   assert.match(reportClientSource, /\$\{base\}\.pdf/);
+  assert.match(reportClientSource, /完整咨询留存报告/);
+  assert.match(reportClientSource, /downloadClientReport/);
   assert.match(reportClientSource, /恢复数据/);
   assert.match(reportClientSource, /全部命理分析报告-/);
+  assert.match(html, /id="downloadClientReport"/);
+  assert.doesNotMatch(html, /id="refreshCurrentReport"|id="saveCurrentReport"/);
   assert.match(html, /accept="application\/zip,\.zip/);
   assert.match(html, /导出全部分析报告/);
   const exportBody = reportClientSource.match(/async function exportAllProfiles[\s\S]*?\n  }\n\n  async function inspectImportZip/)?.[0] || "";
@@ -104,12 +108,19 @@ const noReportProfile = {
 const facts = {
   schemaVersion: "bazi-facts-v1", engineVersion: "product-31", ruleset: "《四柱预测学》子平法口径",
   pillars: {
-    year: { label: "年柱", name: "庚午" }, month: { label: "月柱", name: "戊子" },
-    day: { label: "日柱", name: "丁卯" }, hour: { label: "时柱", name: "乙巳" },
+    year: { label: "年柱", name: "庚午", stem: "庚", branch: "午", hiddenStems: ["丁", "己"] },
+    month: { label: "月柱", name: "戊子", stem: "戊", branch: "子", hiddenStems: ["癸"] },
+    day: { label: "日柱", name: "丁卯", stem: "丁", branch: "卯", hiddenStems: ["乙"] },
+    hour: { label: "时柱", name: "乙巳", stem: "乙", branch: "巳", hiddenStems: ["丙", "戊", "庚"] },
   },
   strength: { label: "偏弱", summary: "冬月火弱，得木火生扶。" },
   pattern: { name: "七杀格", status: "初步成立", basis: ["月令主气取格。"] },
-  usefulGod: { strategy: "扶身制杀", primaryGods: ["印"], favorableGods: ["木", "火"], unfavorableGods: ["水"] },
+  usefulGod: {
+    strategy: "扶身制杀", primaryGods: ["正印", "偏印"],
+    favorableGods: ["正印", "偏印", "比肩", "劫财"],
+    unfavorableGods: ["正财", "偏财", "正官", "七杀", "食神", "伤官"],
+  },
+  tenGodCounts: { 比肩: 1, 劫财: 2, 食神: 1.5, 伤官: 0.5, 正财: 1, 偏财: 0.5, 正官: 2, 七杀: 1, 正印: 1.5, 偏印: 0.5 },
   relations: {
     natal: [{
       name: "卯酉六冲", type: "六冲", members: ["卯", "酉"],
@@ -122,7 +133,14 @@ const facts = {
       effect: "地支六合，是否成化仍需看月令和透干",
     }],
   },
-  luck: { current: { name: "乙酉大运" } }, annual: { name: "丙午" }, warnings: ["当前规则仍有传统暂行项。"],
+  luck: { current: { name: "乙酉大运", stemGod: "偏印" } },
+  annual: { year: 2026, name: "丙午", stemGod: "劫财", note: "合作与竞争议题被引动。" },
+  futureAnnuals: [
+    { year: 2026, name: "丙午", stemGod: "劫财", note: "合作与竞争议题被引动。" },
+    { year: 2027, name: "丁未", stemGod: "比肩", note: "自身行动与边界更受关注。" },
+    { year: 2028, name: "戊申", stemGod: "伤官", note: "表达和输出议题增加。" },
+  ],
+  warnings: ["当前规则仍有传统暂行项。"],
 };
 const chart = {
   id: chartId, owner_id: ownerId, profile_id: profileId, chart_version: 1, schema_version: "bazi-facts-v1",
@@ -216,9 +234,9 @@ async function verifyMobileZipFlow(browserType, launchOptions, contextOptions, n
     }, profileId);
     const [download] = await Promise.all([
       page.waitForEvent("download"),
-      page.locator("#saveCurrentReport").tap(),
+      page.locator("#downloadClientReport").tap(),
     ]);
-    assert.match(download.suggestedFilename(), /^北京-本人报告测试-1990-01-02-命理分析报告\.zip$/);
+    assert.match(download.suggestedFilename(), /^北京-本人报告测试-1990-01-02-命理分析报告\.pdf$/);
 
     await page.locator('[data-go="mine"]').last().tap();
     const restoreCountBeforePreview = restoreRequests.length;
@@ -234,7 +252,7 @@ async function verifyMobileZipFlow(browserType, launchOptions, contextOptions, n
     assert.equal(await page.locator("#confirmReportImport").isEnabled(), true);
     assert.equal(restoreRequests.length, restoreCountBeforePreview, "导入预览不得写入云端");
     assert.deepEqual(pageErrors, [], `${name} 页面脚本报错`);
-    checks.push({ name: `${name} 报告 ZIP 下载与导入预览`, ok: true });
+    checks.push({ name: `${name} 客户 PDF 下载与留存 ZIP 导入预览`, ok: true });
   } catch (error) {
     checks.push({ name: `${name} 报告 ZIP 下载与导入预览`, ok: false, error });
   } finally {
@@ -257,6 +275,24 @@ try {
   await page.locator("#loginPassword").fill("report-test");
   await page.locator("#loginSubmit").click();
   await page.locator("#businessApp").waitFor({ state: "visible" });
+  await page.locator('[data-home-view="report"]').click();
+  await page.locator(".report-modern-overview").waitFor({ state: "visible" });
+  assert.match(await page.locator("#reportPreviewContent").innerText(), /先用现代话看整体/);
+  assert.match(await page.locator("#reportPreviewContent").innerText(), /五行结构/);
+  assert.match(await page.locator("#reportPreviewContent").innerText(), /十神分布/);
+  assert.match(await page.locator("#reportPreviewContent").innerText(), /近年流年节奏/);
+  assert.equal(await page.locator(".report-bar-row").count(), 15);
+  assert.equal(await page.locator(".report-annual-label").count(), 3);
+  const reportLayout = await page.evaluate(() => ({
+    viewportWidth: document.documentElement.clientWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    toolbarRight: document.querySelector(".report-toolbar-actions")?.getBoundingClientRect().right || 0,
+  }));
+  assert.ok(reportLayout.documentWidth <= reportLayout.viewportWidth, "报告页不得产生横向溢出");
+  assert.ok(reportLayout.toolbarRight <= reportLayout.viewportWidth, "报告下载按钮不得超出应用视口");
+  fs.mkdirSync(path.join(root, "tools", ".artifacts"), { recursive: true });
+  await page.screenshot({ path: path.join(root, "tools", ".artifacts", "stage6-client-report-mobile.png"), fullPage: true });
+  checks.push({ name: "客户报告图表在移动端完整展示且无横向溢出", ok: true });
   const paginationFonts = await page.evaluate(async () => {
     const prototype = CanvasRenderingContext2D.prototype;
     const original = prototype.fillText;
@@ -293,6 +329,7 @@ try {
   checks.push({ name: "长报告跨页后不退回 Canvas 默认小字体", ok: true });
   const packageInfo = await page.evaluate(async (id) => {
     const pkg = await window.MingliReportClient.buildProfilePackage(id);
+    window.__stage6ReportPackage = pkg;
     const entries = window.MingliReportUtils.readZip(pkg.zip);
     const jsonName = [...entries.keys()].find((name) => name.endsWith("恢复数据.json"));
     const recovery = JSON.parse(window.MingliReportUtils.decoder.decode(entries.get(jsonName)));
@@ -301,17 +338,32 @@ try {
       pdfPrefix: window.MingliReportUtils.decoder.decode(pkg.pdf.slice(0, 8)),
       pdfSuffix: window.MingliReportUtils.decoder.decode(pkg.pdf.slice(-8)),
       pdfSize: pkg.pdf.length,
+      archivePdfSize: pkg.archivePdf.length,
       zipNames: [...entries.keys()],
       recovery,
       base: pkg.base,
-      relationItems: pkg.presentation.sections.find((section) => section.title === "关系与岁运")?.items || [],
+      reportKind: pkg.presentation.reportKind,
+      archiveKind: pkg.archivePresentation.reportKind,
+      clientSectionTitles: pkg.presentation.sections.map((section) => section.title),
+      archiveSectionTitles: pkg.archivePresentation.sections.map((section) => section.title),
+      visuals: pkg.presentation.visuals,
+      relationItems: pkg.presentation.sections.find((section) => section.title === "原局与岁运关系")?.items || [],
     };
   }, profileId);
   assert.match(packageInfo.pdfPrefix, /^%PDF-1\.4/);
   assert.match(packageInfo.pdfSuffix, /%%EOF$/);
   assert.ok(packageInfo.pdfSize > 20_000, "PDF 应包含实际报告页面图像");
-  assert.equal(packageInfo.zipNames.filter((name) => name.endsWith(".pdf")).length, 1);
+  assert.ok(packageInfo.archivePdfSize > packageInfo.pdfSize, "完整留存 PDF 应包含额外咨询记录");
+  assert.equal(packageInfo.zipNames.filter((name) => name.endsWith(".pdf")).length, 2);
   assert.equal(packageInfo.zipNames.filter((name) => name.endsWith("恢复数据.json")).length, 1);
+  assert.equal(packageInfo.reportKind, "client");
+  assert.equal(packageInfo.archiveKind, "archive");
+  assert.equal(packageInfo.clientSectionTitles.includes("完整咨询记录"), false);
+  assert.equal(packageInfo.archiveSectionTitles.includes("完整咨询记录"), true);
+  assert.equal(packageInfo.visuals.elements.items.length, 5);
+  assert.equal(packageInfo.visuals.tenGods.items.length, 10);
+  assert.equal(packageInfo.visuals.annuals.items.length, 3);
+  assert.match(packageInfo.visuals.annuals.caption, /不是成功率或运势评分/);
   assert.equal(packageInfo.recovery.profile.name, profile.name);
   assert.equal(packageInfo.recovery.currentChart.facts.schemaVersion, "bazi-facts-v1");
   assert.equal(packageInfo.recovery.conversations.length, 1);
@@ -322,6 +374,26 @@ try {
   assert.match(packageInfo.relationItems[0].text, /涉及月柱、时柱：地支相冲/);
   assert.match(packageInfo.relationItems[1].text, /当前大运（大运）、当前流年（流年）/);
   assert.doesNotMatch(JSON.stringify(packageInfo.relationItems), /\"sources\"|\"members\"|\"scope\"/);
+
+  const artifactDir = path.join(root, "tools", ".artifacts");
+  const [clientPdfDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.evaluate(() => window.MingliReportUtils.downloadBytes(
+      window.__stage6ReportPackage.clientPdf,
+      "stage6-client-report.pdf",
+      "application/pdf",
+    )),
+  ]);
+  fs.copyFileSync(await clientPdfDownload.path(), path.join(artifactDir, "stage6-client-report.pdf"));
+  const [archivePdfDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.evaluate(() => window.MingliReportUtils.downloadBytes(
+      window.__stage6ReportPackage.archivePdf,
+      "stage6-archive-report.pdf",
+      "application/pdf",
+    )),
+  ]);
+  fs.copyFileSync(await archivePdfDownload.path(), path.join(artifactDir, "stage6-archive-report.pdf"));
 
   await page.evaluate((id) => window.MingliReportClient.refreshProfileReport(id), profileId);
   assert.equal(storageWrites.length, 1);
@@ -358,7 +430,7 @@ try {
   const allZipNames = await page.evaluate((bytes) => (
     [...window.MingliReportUtils.readZip(new Uint8Array(bytes)).keys()]
   ), [...allZipBytes]);
-  assert.equal(allZipNames.filter((name) => name.endsWith(".pdf")).length, 1);
+  assert.equal(allZipNames.filter((name) => name.endsWith(".pdf")).length, 2);
   assert.equal(allZipNames.filter((name) => name.endsWith("恢复数据.json")).length, 1);
   assert.ok(allZipNames.includes("导出说明.txt"));
   assert.ok(allZipNames.includes("总清单.json"));

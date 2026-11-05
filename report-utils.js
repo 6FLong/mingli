@@ -91,14 +91,36 @@
       const font = `${weight} ${size}px "PingFang SC", "Microsoft YaHei", sans-serif`;
       context.font = font;
       const lines = wrapText(context, text, width - margin * 2 - (options.indent || 0));
-      ensure(Math.max(lineHeight, lines.length * lineHeight) + (options.after || 0));
-      context.font = font;
+      const totalHeight = Math.max(lineHeight, lines.length * lineHeight) + (options.after || 0);
+      if (totalHeight <= bottom - 78) ensure(totalHeight);
       context.fillStyle = options.color || "#344441";
       lines.forEach((value) => {
+        ensure(lineHeight);
+        context.font = font;
+        context.fillStyle = options.color || "#344441";
         context.fillText(value, margin + (options.indent || 0), y);
         y += lineHeight;
       });
       y += options.after || 0;
+    }
+
+    function textBlockHeight(text, options = {}) {
+      const size = options.size || 30;
+      const lineHeight = options.lineHeight || Math.round(size * 1.65);
+      context.font = `${options.weight || 400} ${size}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+      return Math.max(
+        lineHeight,
+        wrapText(context, text, width - margin * 2 - (options.indent || 0)).length * lineHeight,
+      ) + (options.after || 0);
+    }
+
+    function reportItemHeight(item) {
+      let result = item.label ? textBlockHeight(item.label, { size: 28, lineHeight: 44, weight: 700, after: 2 }) : 0;
+      result += textBlockHeight(item.text, { size: 27, lineHeight: 45, indent: item.bullet ? 24 : 0, after: 9 });
+      if (item.factRefs?.length) {
+        result += textBlockHeight(`依据：${item.factRefs.join("、")}`, { size: 22, lineHeight: 36, indent: 24, after: 5 });
+      }
+      return result;
     }
 
     function heading(text) {
@@ -109,8 +131,102 @@
       line(text, { size: 34, lineHeight: 52, weight: 700, indent: 24, color: "#1e2928", after: 12 });
     }
 
+    function overviewCard(overview) {
+      if (!overview) return;
+      context.font = '700 34px "PingFang SC", "Microsoft YaHei", sans-serif';
+      const bodyLines = wrapText(context, overview.text, width - margin * 2 - 64);
+      const methodLines = wrapText(context, overview.method, width - margin * 2 - 64);
+      const cardHeight = 78 + bodyLines.length * 43 + methodLines.length * 38 + 48;
+      ensure(cardHeight + 18);
+      context.fillStyle = "#eef6f4";
+      context.fillRect(margin, y, width - margin * 2, cardHeight);
+      y += 28;
+      line(overview.title, { size: 34, lineHeight: 48, weight: 700, color: "#175c56", indent: 28, after: 8 });
+      line(overview.text, { size: 27, lineHeight: 43, color: "#344441", indent: 28, after: 8 });
+      line(overview.method, { size: 23, lineHeight: 38, color: "#637370", indent: 28, after: 18 });
+    }
+
+    function distributionChart(chart) {
+      if (!chart?.items?.length) return;
+      heading(chart.title);
+      line(chart.caption || "", { size: 22, lineHeight: 34, color: "#788684", after: 14 });
+      const rowHeight = 54;
+      const chartHeight = chart.items.length * rowHeight + 18;
+      ensure(chartHeight);
+      const labelWidth = 92;
+      const valueWidth = 64;
+      const trackX = margin + labelWidth;
+      const trackWidth = width - margin * 2 - labelWidth - valueWidth;
+      chart.items.forEach((item, index) => {
+        const rowY = y + index * rowHeight;
+        context.font = '700 24px "PingFang SC", "Microsoft YaHei", sans-serif';
+        context.fillStyle = "#334744";
+        context.fillText(item.label, margin, rowY + 8);
+        context.fillStyle = "#e8efee";
+        context.fillRect(trackX, rowY + 13, trackWidth, 20);
+        context.fillStyle = item.color || "#397f78";
+        context.fillRect(trackX, rowY + 13, Math.max(item.value > 0 ? 6 : 0, trackWidth * (item.ratio || 0)), 20);
+        context.fillStyle = "#52615f";
+        context.font = '600 22px "PingFang SC", "Microsoft YaHei", sans-serif';
+        context.fillText(item.valueLabel, trackX + trackWidth + 18, rowY + 8);
+      });
+      y += chartHeight;
+    }
+
+    function annualChart(chart) {
+      if (!chart?.items?.length) return;
+      heading(chart.title);
+      line(chart.caption || "", { size: 22, lineHeight: 34, color: "#788684", after: 14 });
+      ensure(300);
+      const left = margin + 64;
+      const right = width - margin - 38;
+      const top = y + 18;
+      const chartHeight = 152;
+      const tones = ["宜谨慎", "较平稳", "偏助力"];
+      context.font = '500 20px "PingFang SC", "Microsoft YaHei", sans-serif';
+      tones.forEach((tone, index) => {
+        const lineY = top + chartHeight - index * (chartHeight / 2);
+        context.strokeStyle = "#dde8e6";
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(left, lineY);
+        context.lineTo(right, lineY);
+        context.stroke();
+        context.fillStyle = "#788684";
+        context.fillText(tone, margin, lineY - 12);
+      });
+      const step = chart.items.length > 1 ? (right - left) / (chart.items.length - 1) : 0;
+      const points = chart.items.map((item, index) => ({
+        x: chart.items.length > 1 ? left + index * step : (left + right) / 2,
+        y: top + chartHeight - ((Number(item.level || 2) - 1) * chartHeight) / 2,
+        item,
+      }));
+      context.strokeStyle = "#23766f";
+      context.lineWidth = 5;
+      context.beginPath();
+      points.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
+      context.stroke();
+      points.forEach((point) => {
+        context.fillStyle = point.item.tone === "support" ? "#3f8f6b" : point.item.tone === "caution" ? "#c56c54" : "#397f9e";
+        context.beginPath();
+        context.arc(point.x, point.y, 10, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "#334744";
+        context.font = '700 21px "PingFang SC", "Microsoft YaHei", sans-serif';
+        context.textAlign = "center";
+        context.fillText(`${point.item.year}`, point.x, top + chartHeight + 24);
+        context.font = '500 19px "PingFang SC", "Microsoft YaHei", sans-serif';
+        context.fillText(`${point.item.name} · ${point.item.god}`, point.x, top + chartHeight + 54);
+      });
+      context.textAlign = "left";
+      y = top + chartHeight + 94;
+      chart.items.forEach((item) => {
+        line(`${item.year}年（${item.toneLabel}）：${item.detail}`, { size: 23, lineHeight: 37, color: "#52615f", after: 5 });
+      });
+    }
+
     newPage();
-    line("命理分析报告", { size: 54, lineHeight: 72, weight: 700, color: "#175c56", after: 14 });
+    line(report.title || "命理分析报告", { size: 54, lineHeight: 72, weight: 700, color: "#175c56", after: 14 });
     line(report.identityLine, { size: 30, lineHeight: 48, weight: 600, after: 4 });
     line(`更新时间：${report.updatedAtLabel}`, { size: 24, lineHeight: 38, color: "#788684", after: 24 });
     context.strokeStyle = "#8fbcb7";
@@ -121,13 +237,21 @@
     context.stroke();
     y += 28;
 
+    overviewCard(report.overview);
+    distributionChart(report.visuals?.elements);
+    distributionChart(report.visuals?.tenGods);
+    annualChart(report.visuals?.annuals);
+
     report.sections.forEach((section) => {
+      if (section.items?.length) ensure(82 + Math.min(reportItemHeight(section.items[0]), bottom - 78));
       heading(section.title);
       if (!section.items?.length) {
         line("暂无内容", { color: "#788684", after: 6 });
         return;
       }
       section.items.forEach((item) => {
+        const itemHeight = reportItemHeight(item);
+        if (itemHeight <= bottom - 78) ensure(itemHeight);
         if (item.label) line(item.label, { size: 28, lineHeight: 44, weight: 700, color: "#324946", after: 2 });
         line(item.text, { size: 27, lineHeight: 45, indent: item.bullet ? 24 : 0, after: 9 });
         if (item.factRefs?.length) {

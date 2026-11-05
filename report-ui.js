@@ -7,8 +7,7 @@
   const statusText = document.querySelector("#reportStatusText");
   const syncStatus = document.querySelector("#reportSyncStatus");
   const preview = document.querySelector("#reportPreviewContent");
-  const refreshButton = document.querySelector("#refreshCurrentReport");
-  const saveButton = document.querySelector("#saveCurrentReport");
+  const downloadButton = document.querySelector("#downloadClientReport");
   const exportButton = document.querySelector("#exportData");
   const importButton = document.querySelector("#importData");
   const importInput = document.querySelector("#backupFileInput");
@@ -30,8 +29,7 @@
 
   function setBusy(value, message = "") {
     busy = value;
-    refreshButton.disabled = value;
-    saveButton.disabled = value;
+    downloadButton.disabled = value || !currentProfileId;
     exportButton.disabled = value;
     if (message) {
       syncStatus.textContent = message;
@@ -44,7 +42,77 @@
     statusText.textContent = detail;
     syncStatus.textContent = state;
     syncStatus.dataset.tone = "";
+    downloadButton.disabled = true;
     preview.replaceChildren();
+  }
+
+  function renderDistribution(chart) {
+    const block = element("section", "report-visual-section");
+    block.append(element("h3", "", chart.title), element("p", "report-chart-caption", chart.caption));
+    const bars = element("div", "report-bar-chart");
+    chart.items.forEach((item) => {
+      const row = element("div", "report-bar-row");
+      const track = element("span", "report-bar-track");
+      const fill = element("i", "report-bar-fill");
+      fill.style.width = `${Math.max(0, Math.min(100, item.ratio * 100))}%`;
+      fill.style.backgroundColor = item.color;
+      track.append(fill);
+      row.append(element("b", "", item.label), track, element("em", "", item.valueLabel));
+      bars.append(row);
+    });
+    block.append(bars);
+    return block;
+  }
+
+  function renderAnnualTrend(chart) {
+    const block = element("section", "report-visual-section");
+    block.append(element("h3", "", chart.title), element("p", "report-chart-caption", chart.caption));
+    const graph = element("div", "report-annual-graph");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 300 112");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "近年流年节奏图");
+    [18, 55, 92].forEach((y) => {
+      const line = document.createElementNS(svg.namespaceURI, "line");
+      line.setAttribute("x1", "12");
+      line.setAttribute("x2", "288");
+      line.setAttribute("y1", String(y));
+      line.setAttribute("y2", String(y));
+      line.setAttribute("class", "report-chart-gridline");
+      svg.append(line);
+    });
+    const points = chart.items.map((item, index) => {
+      const x = chart.items.length > 1 ? 28 + (244 * index) / (chart.items.length - 1) : 150;
+      const y = item.level === 3 ? 18 : item.level === 1 ? 92 : 55;
+      return { x, y, item };
+    });
+    const polyline = document.createElementNS(svg.namespaceURI, "polyline");
+    polyline.setAttribute("points", points.map((point) => `${point.x},${point.y}`).join(" "));
+    polyline.setAttribute("class", "report-chart-line");
+    svg.append(polyline);
+    points.forEach((point) => {
+      const circle = document.createElementNS(svg.namespaceURI, "circle");
+      circle.setAttribute("cx", String(point.x));
+      circle.setAttribute("cy", String(point.y));
+      circle.setAttribute("r", "5");
+      circle.setAttribute("class", `report-chart-point is-${point.item.tone}`);
+      svg.append(circle);
+    });
+    graph.append(svg);
+    const labels = element("div", "report-annual-labels");
+    chart.items.forEach((item) => {
+      const label = element("div", `report-annual-label is-${item.tone}`);
+      label.append(element("b", "", `${item.year} ${item.name}`), element("span", "", `${item.god} · ${item.toneLabel}`));
+      labels.append(label);
+    });
+    const details = element("div", "report-annual-details");
+    chart.items.forEach((item) => {
+      const row = element("p", "");
+      row.append(element("b", "", `${item.year}年：`), document.createTextNode(item.detail));
+      details.append(row);
+    });
+    block.append(graph, labels, details);
+    return block;
   }
 
   function renderPresentation(presentation, status) {
@@ -52,7 +120,19 @@
     statusText.textContent = `更新于 ${presentation.updatedAtLabel}`;
     syncStatus.textContent = status === "ready" ? "已同步" : status === "failed" ? "更新失败" : "待更新";
     syncStatus.dataset.tone = status === "ready" ? "ready" : "warning";
+    downloadButton.disabled = false;
+    const overview = element("section", "report-modern-overview");
+    overview.append(
+      element("span", "", "先用现代话看整体"),
+      element("h3", "", presentation.overview.title),
+      element("p", "", presentation.overview.text),
+      element("small", "", presentation.overview.method),
+    );
     preview.replaceChildren(
+      overview,
+      renderDistribution(presentation.visuals.elements),
+      renderDistribution(presentation.visuals.tenGods),
+      renderAnnualTrend(presentation.visuals.annuals),
       ...presentation.sections.map((section) => {
         const block = element("section", "report-preview-section");
         block.append(element("h3", "", section.title));
@@ -128,8 +208,18 @@
     }
   }
 
-  refreshButton.addEventListener("click", () => void refreshProfile(currentProfileId).catch(() => undefined));
-  saveButton.addEventListener("click", () => void saveProfile(currentProfileId));
+  downloadButton.addEventListener("click", async () => {
+    if (!currentProfileId || busy) return;
+    setBusy(true, "准备 PDF");
+    try {
+      await client.downloadClientReport(currentProfileId);
+      bridge.showToast("客户 PDF 已下载");
+    } catch (error) {
+      bridge.showToast(error?.message || "客户 PDF 下载失败");
+    } finally {
+      setBusy(false);
+    }
+  });
 
   exportButton.addEventListener("click", async () => {
     if (busy) return;
@@ -213,9 +303,7 @@
 
   global.addEventListener("mingli:profile-changed", (event) => void loadProfile(event.detail?.profileId || null));
   global.addEventListener("mingli:consultation-complete", (event) => {
-    void refreshProfile(event.detail?.profileId, { quiet: true }).catch(() => {
-      bridge.showToast("咨询已保存，报告稍后可手动更新");
-    });
+    void refreshProfile(event.detail?.profileId, { quiet: true }).catch(() => undefined);
   });
 
   global.MingliReportUi = Object.freeze({ saveProfile, refreshProfile, loadProfile });

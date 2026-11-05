@@ -160,13 +160,12 @@
                   <h2 id="reportStatusTitle">尚未生成报告</h2>
                   <p id="reportStatusText">完成首次咨询后，这里会展示持续更新的分析报告。</p>
                 </div>
-                <span class="report-sync-status" id="reportSyncStatus">未生成</span>
+                <div class="report-toolbar-actions">
+                  <span class="report-sync-status" id="reportSyncStatus">未生成</span>
+                  <button class="report-download-button" type="button" id="downloadClientReport" disabled>下载 PDF</button>
+                </div>
               </div>
               <div class="report-preview-content" id="reportPreviewContent"></div>
-              <div class="report-actions">
-                <button class="secondary-button" type="button" id="refreshCurrentReport">更新报告</button>
-                <button class="primary-button" type="button" id="saveCurrentReport">保存报告</button>
-              </div>
             </section>
           </div>
         </section>
