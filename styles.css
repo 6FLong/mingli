@@ -2572,6 +2572,105 @@ body.modal-open {
   margin-top: 22px;
 }
 
+.cloud-usage-panel {
+  margin-top: 10px;
+  padding: 15px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.cloud-usage-head,
+.cloud-usage-item > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cloud-usage-head h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.cloud-usage-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.cloud-usage-head button {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #edf4f3;
+  color: #23766f;
+  font-size: 21px;
+  line-height: 1;
+}
+
+.cloud-usage-head button.is-loading {
+  animation: storage-refresh-spin 0.8s linear infinite;
+}
+
+@keyframes storage-refresh-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cloud-usage-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 15px;
+}
+
+.cloud-usage-item span,
+.cloud-usage-item b {
+  color: #465956;
+  font-size: 12px;
+}
+
+.cloud-usage-item b {
+  font-weight: 750;
+}
+
+.cloud-usage-track {
+  height: 8px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #e8efee;
+}
+
+.cloud-usage-track i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: #397f78;
+  transition: width 180ms ease;
+}
+
+.cloud-usage-item[data-tone="warning"] .cloud-usage-track i {
+  background: #c28b35;
+}
+
+.cloud-usage-item[data-tone="danger"] .cloud-usage-track i {
+  background: #c55e5e;
+}
+
+.cloud-usage-counts {
+  margin: 13px 0 0;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .settings-group > h2 {
   margin: 0 2px 9px;
   color: #61706e;

@@ -215,6 +215,27 @@
             </div>
           </section>
 
+          <section class="cloud-usage-panel" aria-labelledby="cloudUsageTitle">
+            <div class="cloud-usage-head">
+              <div>
+                <h2 id="cloudUsageTitle">云端存储</h2>
+                <p id="cloudUsageStatus">进入“我的”后自动读取</p>
+              </div>
+              <button type="button" id="refreshCloudUsage" aria-label="刷新云端存储情况" title="刷新">↻</button>
+            </div>
+            <div class="cloud-usage-list">
+              <div class="cloud-usage-item" id="databaseUsageItem">
+                <div><span>数据库</span><b id="databaseUsageValue">--</b></div>
+                <div class="cloud-usage-track" id="databaseUsageTrack" role="progressbar" aria-label="数据库使用比例" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+              </div>
+              <div class="cloud-usage-item" id="reportStorageUsageItem">
+                <div><span>报告文件</span><b id="reportStorageUsageValue">--</b></div>
+                <div class="cloud-usage-track" id="reportStorageUsageTrack" role="progressbar" aria-label="报告文件使用比例" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+              </div>
+            </div>
+            <p class="cloud-usage-counts" id="cloudUsageCounts">档案 -- 份 · 消息 -- 条 · 报告 -- 份</p>
+          </section>
+
           <section class="settings-group">
             <div class="settings-list">
               <div class="setting-row">

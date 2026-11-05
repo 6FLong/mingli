@@ -10,6 +10,23 @@
   const passwordStatus = document.querySelector("#passwordStatus");
   const passwordSubmit = document.querySelector("#passwordSubmit");
   const currentAccountLabel = document.querySelector("#currentAccountLabel");
+  const cloudUsageStatus = document.querySelector("#cloudUsageStatus");
+  const cloudUsageCounts = document.querySelector("#cloudUsageCounts");
+  const refreshCloudUsage = document.querySelector("#refreshCloudUsage");
+  const usageFields = {
+    database: {
+      value: document.querySelector("#databaseUsageValue"),
+      track: document.querySelector("#databaseUsageTrack"),
+      item: document.querySelector("#databaseUsageItem"),
+    },
+    reports: {
+      value: document.querySelector("#reportStorageUsageValue"),
+      track: document.querySelector("#reportStorageUsageTrack"),
+      item: document.querySelector("#reportStorageUsageItem"),
+    },
+  };
+  let usageLoading = false;
+  let usageLoadedAt = 0;
 
   const resultLabels = {
     admin_login_success: "登录成功",
@@ -69,6 +86,52 @@
             ? "Safari"
             : "浏览器";
     return `${browser} · ${platform}`;
+  }
+
+  function formatBytes(value) {
+    const bytes = Math.max(0, Number(value || 0));
+    if (bytes < 1024) return `${Math.round(bytes)} B`;
+    const units = ["KB", "MB", "GB", "TB"];
+    let size = bytes / 1024;
+    let unit = units[0];
+    for (let index = 1; index < units.length && size >= 1024; index += 1) {
+      size /= 1024;
+      unit = units[index];
+    }
+    const decimals = size >= 100 ? 0 : size >= 10 ? 1 : 2;
+    return `${size.toFixed(decimals)} ${unit}`;
+  }
+
+  function renderUsageField(name, usage) {
+    const field = usageFields[name];
+    const percent = Math.max(0, Number(usage?.percent || 0));
+    const bounded = Math.min(100, percent);
+    field.value.textContent = `${formatBytes(usage?.usedBytes)} / ${formatBytes(usage?.referenceLimitBytes)}`;
+    field.track.setAttribute("aria-valuenow", String(Math.round(bounded)));
+    field.track.querySelector("i").style.width = `${bounded}%`;
+    field.item.dataset.tone = percent >= 80 ? "danger" : percent >= 60 ? "warning" : "normal";
+  }
+
+  async function loadCloudUsage(force = false) {
+    if (usageLoading || (!force && Date.now() - usageLoadedAt < 30_000)) return;
+    usageLoading = true;
+    refreshCloudUsage.disabled = true;
+    refreshCloudUsage.classList.add("is-loading");
+    cloudUsageStatus.textContent = "正在读取云端用量…";
+    try {
+      const usage = await cloud.request("/functions/v1/storage-usage", { method: "POST", body: "{}" });
+      renderUsageField("database", usage.database);
+      renderUsageField("reports", usage.reports);
+      cloudUsageCounts.textContent = `档案 ${usage.counts?.profiles || 0} 份 · 消息 ${usage.counts?.messages || 0} 条 · 报告 ${usage.counts?.reports || 0} 份`;
+      cloudUsageStatus.textContent = `免费版参考额度，以 Supabase 后台为准 · ${beijingFormatter.format(new Date(usage.measuredAt))}`;
+      usageLoadedAt = Date.now();
+    } catch (error) {
+      cloudUsageStatus.textContent = error?.message || "云端存储情况读取失败，点击刷新重试。";
+    } finally {
+      usageLoading = false;
+      refreshCloudUsage.disabled = false;
+      refreshCloudUsage.classList.remove("is-loading");
+    }
   }
 
   function createLogRow(event) {
@@ -181,8 +244,15 @@
     void global.MingliAuthUi.logout();
   });
 
+  refreshCloudUsage.addEventListener("click", () => void loadCloudUsage(true));
+
+  document.addEventListener("click", (event) => {
+    if (event.target.closest('[data-go="mine"]')) void loadCloudUsage();
+  });
+
   global.addEventListener("mingli:authenticated", () => {
     currentAccountLabel.textContent = cloud.accountIdentifier || "已登录";
+    usageLoadedAt = 0;
   });
 
   for (const modal of [logsModal, passwordModal]) {
