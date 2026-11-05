@@ -2106,6 +2106,36 @@ body.modal-open {
   background: #e5f1ef;
 }
 
+.home-sticky-stack {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 12;
+  padding-bottom: 2px;
+  overflow-anchor: none;
+  background: #ffffff;
+}
+
+.home-profile-collapsible {
+  max-height: 260px;
+  overflow: hidden;
+  opacity: 1;
+  transition: max-height 220ms ease, opacity 150ms ease;
+}
+
+.home-sticky-stack.is-compact {
+  border-bottom: 1px solid #dfe7e5;
+  box-shadow: 0 5px 12px rgba(28, 58, 55, 0.06);
+}
+
+.screen[data-screen="home"].is-profile-collapsed .home-profile-collapsible {
+  max-height: 0;
+  opacity: 0;
+}
+
+.screen[data-screen="home"].is-profile-collapsed .home-segments {
+  margin-top: 0;
+}
+
 .current-profile-card .profile-head h1 {
   font-size: 22px;
 }
@@ -2173,6 +2203,12 @@ body.modal-open {
   background: #ffffff;
   color: #175c56;
   box-shadow: 0 1px 3px rgba(31, 71, 67, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-profile-collapsible {
+    transition: none;
+  }
 }
 
 .home-workspace {

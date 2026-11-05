@@ -4,6 +4,9 @@ const screens = Array.from(document.querySelectorAll(".screen"));
 const tabs = Array.from(document.querySelectorAll(".tabbar .tab"));
 const homeViewButtons = Array.from(document.querySelectorAll("[data-home-view]"));
 const homeViewPanels = Array.from(document.querySelectorAll("[data-home-panel]"));
+const homeScreen = document.querySelector('[data-screen="home"]');
+const homeStickyStack = document.querySelector("#homeStickyStack");
+const homeProfileCollapsible = document.querySelector("#homeProfileCollapsible");
 const toastEl = document.querySelector("#toast");
 const questionText = document.querySelector("#questionText");
 const resultTitle = document.querySelector("#resultTitle");
@@ -2619,6 +2622,81 @@ function setHomeView(viewName) {
     panel.classList.toggle("is-active", selected);
   });
 }
+
+let homeHeaderCollapsed = false;
+let lastHomeScrollY = window.scrollY;
+let homeScrollDirectionDistance = 0;
+let homeScrollFrame = 0;
+let homeHeaderTransitionUntil = 0;
+let lastHomeTouchY = null;
+
+function setHomeHeaderCollapsed(collapsed) {
+  if (homeHeaderCollapsed === collapsed) return;
+  homeHeaderCollapsed = collapsed;
+  homeScreen.classList.toggle("is-profile-collapsed", collapsed);
+  homeStickyStack.classList.toggle("is-compact", collapsed);
+  if (collapsed) {
+    homeProfileCollapsible.setAttribute("aria-hidden", "true");
+    homeProfileCollapsible.inert = true;
+  } else {
+    homeProfileCollapsible.removeAttribute("aria-hidden");
+    homeProfileCollapsible.inert = false;
+  }
+  homeScrollDirectionDistance = 0;
+  homeHeaderTransitionUntil = Date.now() + 240;
+}
+
+function applyHomeScrollIntent(delta) {
+  if (!homeScreen.classList.contains("is-active") || Math.abs(delta) < 8) return;
+  if (delta > 0 && window.scrollY + delta > 80) setHomeHeaderCollapsed(true);
+  else if (delta < 0) setHomeHeaderCollapsed(false);
+}
+
+function updateHomeStickyHeader() {
+  homeScrollFrame = 0;
+  const currentY = Math.max(0, window.scrollY);
+  if (!homeScreen.classList.contains("is-active")) {
+    lastHomeScrollY = currentY;
+    homeScrollDirectionDistance = 0;
+    return;
+  }
+  if (currentY <= 24) {
+    setHomeHeaderCollapsed(false);
+    lastHomeScrollY = currentY;
+    return;
+  }
+  if (Date.now() < homeHeaderTransitionUntil) {
+    lastHomeScrollY = currentY;
+    return;
+  }
+  const delta = currentY - lastHomeScrollY;
+  if (delta && Math.sign(delta) !== Math.sign(homeScrollDirectionDistance)) homeScrollDirectionDistance = delta;
+  else homeScrollDirectionDistance += delta;
+
+  if (!homeHeaderCollapsed && currentY > 80 && homeScrollDirectionDistance > 24) setHomeHeaderCollapsed(true);
+  else if (homeHeaderCollapsed && homeScrollDirectionDistance < -16) setHomeHeaderCollapsed(false);
+  lastHomeScrollY = currentY;
+}
+
+function scheduleHomeStickyHeader() {
+  if (homeScrollFrame) return;
+  homeScrollFrame = window.requestAnimationFrame(updateHomeStickyHeader);
+}
+
+window.addEventListener("scroll", scheduleHomeStickyHeader, { passive: true });
+window.addEventListener("wheel", (event) => applyHomeScrollIntent(event.deltaY), { passive: true });
+window.addEventListener("touchstart", (event) => {
+  lastHomeTouchY = event.touches[0]?.clientY ?? null;
+}, { passive: true });
+window.addEventListener("touchmove", (event) => {
+  const currentTouchY = event.touches[0]?.clientY;
+  if (lastHomeTouchY == null || currentTouchY == null) return;
+  applyHomeScrollIntent(lastHomeTouchY - currentTouchY);
+  lastHomeTouchY = currentTouchY;
+}, { passive: true });
+window.addEventListener("touchend", () => {
+  lastHomeTouchY = null;
+}, { passive: true });
 
 function goTo(requestedScreenName) {
   const legacyHomeViews = { ask: "conversation", history: "conversation", detail: "chart" };

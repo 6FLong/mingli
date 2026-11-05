@@ -50,25 +50,29 @@
             <h1>命理咨询</h1>
           </div>
 
-          <article class="profile-card current-profile-card">
-            <div class="profile-head">
-              <div>
-                <p class="eyebrow">当前档案</p>
-                <h1 data-current-profile-name>未选择档案</h1>
-                <p data-current-profile-meta>请先创建第一个档案</p>
-              </div>
-              <button class="soft-pill profile-switch" type="button" data-open-profile-picker>新增档案</button>
+          <div class="home-sticky-stack" id="homeStickyStack">
+            <div class="home-profile-collapsible" id="homeProfileCollapsible">
+              <article class="profile-card current-profile-card">
+                <div class="profile-head">
+                  <div>
+                    <p class="eyebrow">当前档案</p>
+                    <h1 data-current-profile-name>未选择档案</h1>
+                    <p data-current-profile-meta>请先创建第一个档案</p>
+                  </div>
+                  <button class="soft-pill profile-switch" type="button" data-open-profile-picker>新增档案</button>
+                </div>
+                <div class="current-stage">
+                  <span id="todayStateLabel">待建立</span>
+                  <p id="todayStateText">创建第一个档案后显示当前命盘阶段。</p>
+                </div>
+              </article>
             </div>
-            <div class="current-stage">
-              <span id="todayStateLabel">待建立</span>
-              <p id="todayStateText">创建第一个档案后显示当前命盘阶段。</p>
-            </div>
-          </article>
 
-          <div class="home-segments" role="tablist" aria-label="当前档案内容">
-            <button class="is-selected" type="button" role="tab" aria-selected="true" data-home-view="conversation">历史对话</button>
-            <button type="button" role="tab" aria-selected="false" data-home-view="chart">排盘</button>
-            <button type="button" role="tab" aria-selected="false" data-home-view="report">分析报告</button>
+            <div class="home-segments" role="tablist" aria-label="当前档案内容">
+              <button class="is-selected" type="button" role="tab" aria-selected="true" data-home-view="conversation">历史对话</button>
+              <button type="button" role="tab" aria-selected="false" data-home-view="chart">排盘</button>
+              <button type="button" role="tab" aria-selected="false" data-home-view="report">分析报告</button>
+            </div>
           </div>
 
           <div class="home-workspace is-active" data-home-panel="conversation">
