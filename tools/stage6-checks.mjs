@@ -79,6 +79,7 @@ const port = 4186;
 const baseUrl = `http://127.0.0.1:${port}/`;
 const ownerId = "11111111-1111-4111-8111-111111111111";
 const profileId = "22222222-2222-4222-8222-222222222222";
+const noReportProfileId = "22222222-2222-4222-8222-222222222223";
 const chartId = "33333333-3333-4333-8333-333333333333";
 const conversationId = "44444444-4444-4444-8444-444444444444";
 const storageWrites = [];
@@ -91,6 +92,14 @@ const profile = {
   birth_date: "1990-01-02", birth_time: "10:30:00", birth_time_known: true, lunar_leap_month: false,
   birth_place: "北京", birth_longitude: 116.4, relation: "本人", is_self: true, note: "",
   last_consulted_at: "2026-11-03T01:00:00.000Z", created_at: "2026-01-01T00:00:00.000Z", updated_at: "2026-11-03T01:00:00.000Z",
+};
+const noReportProfile = {
+  ...profile,
+  id: noReportProfileId,
+  name: "尚未咨询档案",
+  relation: "家人",
+  is_self: false,
+  birth_date: "1991-02-03",
 };
 const facts = {
   schemaVersion: "bazi-facts-v1", engineVersion: "product-31", ruleset: "《四柱预测学》子平法口径",
@@ -120,6 +129,7 @@ const chart = {
   engine_version: "product-31", ruleset: facts.ruleset, birth_fingerprint: "x", facts, is_current: true,
   created_at: "2026-11-03T00:00:00.000Z", updated_at: "2026-11-03T00:00:00.000Z",
 };
+const noReportChart = { ...chart, id: "33333333-3333-4333-8333-333333333334", profile_id: noReportProfileId };
 const conversation = { id: conversationId, owner_id: ownerId, profile_id: profileId, chart_id: chartId, title: "事业咨询", status: "active", last_message_at: "2026-11-03T01:00:01.000Z", created_at: "2026-11-03T01:00:00.000Z", updated_at: "2026-11-03T01:00:01.000Z" };
 const answer = {
   answer: {
@@ -155,15 +165,19 @@ async function mockReportCloud(route) {
   const method = request.method();
   if (pathname === "/functions/v1/auth-login") return json(route, { access_token: "token", refresh_token: "refresh", expires_in: 3600, user: { id: ownerId } });
   if (pathname === "/rest/v1/profiles" && method === "GET") {
-    if (url.searchParams.get("select") === "id,name,birth_place,birth_date") return json(route, [profile]);
+    if (url.searchParams.get("select") === "id,name,birth_place,birth_date") return json(route, [profile, noReportProfile]);
     if (failProfileDetailReads) return json(route, { error: "cloud_unavailable", message: "无法连接云端" }, 503);
-    return json(route, [profile]);
+    if (url.searchParams.get("id") === `eq.${noReportProfileId}`) return json(route, [noReportProfile]);
+    if (url.searchParams.get("id") === `eq.${profileId}`) return json(route, [profile]);
+    return json(route, [profile, noReportProfile]);
   }
-  if (pathname === "/rest/v1/bazi_charts" && method === "GET") return json(route, [chart]);
-  if (pathname === "/rest/v1/client_summaries" && method === "GET") return json(route, [summary]);
-  if (pathname === "/rest/v1/reports" && method === "GET") return json(route, [report]);
-  if (pathname === "/rest/v1/conversations" && method === "GET") return json(route, [conversation]);
-  if (pathname === "/rest/v1/messages" && method === "GET") return json(route, messages);
+  const requestedProfile = url.searchParams.get("profile_id");
+  const requestsNoReportProfile = requestedProfile === `eq.${noReportProfileId}`;
+  if (pathname === "/rest/v1/bazi_charts" && method === "GET") return json(route, requestsNoReportProfile ? [noReportChart] : [chart]);
+  if (pathname === "/rest/v1/client_summaries" && method === "GET") return json(route, requestsNoReportProfile ? [] : [summary]);
+  if (pathname === "/rest/v1/reports" && method === "GET") return json(route, requestsNoReportProfile ? [] : [report]);
+  if (pathname === "/rest/v1/conversations" && method === "GET") return json(route, requestsNoReportProfile ? [] : [conversation]);
+  if (pathname === "/rest/v1/messages" && method === "GET") return json(route, requestsNoReportProfile ? [] : messages);
   if (pathname === "/rest/v1/user_settings" && method === "GET") return json(route, [{ owner_id: ownerId, current_profile_id: profileId }]);
   if (pathname === "/rest/v1/user_settings" && method === "POST") return json(route, [request.postDataJSON()]);
   if (pathname === "/rest/v1/rpc/save_current_chart") return json(route, [{ chart_id: chartId, reused: true }]);
@@ -337,6 +351,7 @@ try {
   ]);
   assert.match(allDownload.suggestedFilename(), /^全部命理分析报告-\d{4}-\d{2}-\d{2}\.zip$/);
   assert.equal(allManifest.profiles.length, 1);
+  assert.equal(allManifest.skipped.length, 1);
   assert.equal(allManifest.failures.length, 0);
   assert.equal(storageWrites.length, storageWritesBeforeExport, "全部导出不应依赖云端 Storage 上传");
   const allZipBytes = fs.readFileSync(await allDownload.path());
@@ -347,7 +362,14 @@ try {
   assert.equal(allZipNames.filter((name) => name.endsWith("恢复数据.json")).length, 1);
   assert.ok(allZipNames.includes("导出说明.txt"));
   assert.ok(allZipNames.includes("总清单.json"));
-  checks.push({ name: "全部导出直接生成完整 ZIP，不依赖 Storage 上传", ok: true });
+  const readableSummary = await page.evaluate((bytes) => {
+    const entries = window.MingliReportUtils.readZip(new Uint8Array(bytes));
+    return window.MingliReportUtils.decoder.decode(entries.get("导出说明.txt"));
+  }, [...allZipBytes]);
+  assert.match(readableSummary, /成功：1 份/);
+  assert.match(readableSummary, /跳过：1 份/);
+  assert.match(readableSummary, /失败：0 份/);
+  checks.push({ name: "全部导出不依赖 Storage，并跳过尚无报告的档案而不误报失败", ok: true });
 
   failProfileDetailReads = true;
   let unexpectedDownload = false;

@@ -21,7 +21,7 @@ async function verifyLoginPage(browserType, launchOptions, contextOptions) {
     const page = await browser.newPage(contextOptions);
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    const response = await page.goto(`${baseUrl}?release=product-40`, { waitUntil: "domcontentloaded" });
+    const response = await page.goto(`${baseUrl}?release=product-41`, { waitUntil: "domcontentloaded" });
     assert.equal(response.status(), 200);
     await page.locator("#authGate").waitFor({ state: "visible" });
     assert.equal(await page.locator("#businessApp").isVisible(), false);
@@ -39,24 +39,25 @@ async function verifyLoginPage(browserType, launchOptions, contextOptions) {
   }
 }
 
-const htmlResponse = await fetch(`${baseUrl}?release=product-40`, { cache: "no-store" });
+const htmlResponse = await fetch(`${baseUrl}?release=product-41`, { cache: "no-store" });
 assert.equal(htmlResponse.status, 200);
 const html = await htmlResponse.text();
-assert.match(html, /product-40/);
+assert.match(html, /product-41/);
 assert.match(html, /id="authGate"/);
-assert.match(html, /manifest\.webmanifest\?v=product-40/);
-assert.match(html, /report-utils\.js\?v=product-40/);
+assert.match(html, /manifest\.webmanifest\?v=product-41/);
+assert.match(html, /report-utils\.js\?v=product-41/);
+assert.match(html, /report-ui\.js\?v=product-41/);
 
-const manifestResponse = await fetch(`${baseUrl}manifest.webmanifest?v=product-40`, { cache: "no-store" });
+const manifestResponse = await fetch(`${baseUrl}manifest.webmanifest?v=product-41`, { cache: "no-store" });
 assert.equal(manifestResponse.status, 200);
 const manifest = await manifestResponse.json();
 assert.equal(manifest.start_url, "./index.html");
 assert.deepEqual(manifest.icons.map((item) => item.src), ["./icon-192.png", "./icon-512.png"]);
 
-for (const resource of ["app.js?v=product-40", "report-utils.js?v=product-40", "icon-192.png", "icon-512.png"]) {
+for (const resource of ["app.js?v=product-41", "report-utils.js?v=product-41", "icon-192.png", "icon-512.png"]) {
   assert.equal((await fetch(`${baseUrl}${resource}`, { cache: "no-store" })).status, 200, resource);
 }
-const reportClientResponse = await fetch(`${baseUrl}report-client.js?v=product-40`, { cache: "no-store" });
+const reportClientResponse = await fetch(`${baseUrl}report-client.js?v=product-41`, { cache: "no-store" });
 assert.equal(reportClientResponse.status, 200);
 const reportClientSource = await reportClientResponse.text();
 const exportBody = reportClientSource.match(/async function exportAllProfiles[\s\S]*?async function inspectImportZip/)?.[0] || "";
@@ -64,7 +65,9 @@ assert.match(exportBody, /buildProfilePackage\(profile\.id\)/);
 assert.doesNotMatch(exportBody, /refreshProfileReport\(profile\.id\)/);
 assert.match(exportBody, /导出说明\.txt/);
 assert.match(exportBody, /!manifest\.profiles\.length/);
-const reportUtilsResponse = await fetch(`${baseUrl}report-utils.js?v=product-40`, { cache: "no-store" });
+assert.match(exportBody, /error\?\.code === "report_not_available"/);
+assert.match(exportBody, /manifest\.skipped\.push/);
+const reportUtilsResponse = await fetch(`${baseUrl}report-utils.js?v=product-41`, { cache: "no-store" });
 assert.equal(reportUtilsResponse.status, 200);
 const reportUtilsSource = await reportUtilsResponse.text();
 assert.match(reportUtilsSource, /ensure\([\s\S]*?context\.font = font;/);
@@ -75,12 +78,12 @@ await verifyLoginPage(chromium, { executablePath: edgePath }, { viewport: { widt
 await verifyLoginPage(chromium, { executablePath: chromePath }, { ...devices["Pixel 5"] });
 await verifyLoginPage(webkit, {}, { ...devices["iPhone 13"], ignoreHTTPSErrors: true });
 
-console.log("OK GitHub Pages 已发布 product-40 正式资源");
+console.log("OK GitHub Pages 已发布 product-41 正式资源");
 console.log("OK 线上 Manifest、图标与无 Service Worker 状态正确");
 console.log("OK 390px 手机登录页为空、无横向溢出且脚本无错误");
 console.log("OK 1280px Microsoft Edge 登录页为空、无横向溢出且脚本无错误");
 console.log("OK Pixel 5 Android Chrome 参数下登录页触控布局正常");
 console.log("OK iPhone 13 WebKit 参数下登录页布局与脚本正常");
-console.log("OK 线上全部导出使用 product-40 的本地生成与空 ZIP 防护");
+console.log("OK 线上全部导出使用 product-41 的本地生成、无报告跳过与空 ZIP 防护");
 console.log("OK 线上 PDF 生成器包含跨页字体恢复逻辑");
 console.log("\n8 stage-eight Pages checks passed.");

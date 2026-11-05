@@ -139,7 +139,9 @@
       const manifest = await client.exportAllProfiles(({ current, total }) => {
         exportButton.querySelector("b").textContent = `${current}/${total}`;
       });
-      bridge.showToast(manifest.failures.length ? `导出完成，${manifest.failures.length} 份失败` : "全部分析报告已导出");
+      if (manifest.failures.length) bridge.showToast(`导出完成，${manifest.failures.length} 份失败`);
+      else if (manifest.skipped.length) bridge.showToast(`已导出，跳过 ${manifest.skipped.length} 份尚无报告的档案`);
+      else bridge.showToast("全部分析报告已导出");
     } catch (error) {
       bridge.showToast(error?.message || "全部报告导出失败");
     } finally {

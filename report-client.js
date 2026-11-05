@@ -209,7 +209,9 @@
   async function buildProfilePackage(profileId) {
     const data = await loadProfileData(profileId);
     if (!data.messages.some((message) => message.role === "assistant" && message.status === "complete")) {
-      throw new Error("该档案还没有成功咨询记录，暂不能生成分析报告");
+      const error = new Error("该档案还没有成功咨询记录，暂不能生成分析报告");
+      error.code = "report_not_available";
+      throw error;
     }
     const generatedAt = new Date().toISOString();
     const presentation = reportPresentation(data, generatedAt);
@@ -281,7 +283,7 @@
     const profiles = await cloud.request("/rest/v1/profiles?select=id,name,birth_place,birth_date&order=is_self.desc,updated_at.desc");
     if (!Array.isArray(profiles) || !profiles.length) throw new Error("还没有可导出的档案");
     const entries = [];
-    const manifest = { formatVersion: FORMAT_VERSION, exportedAt: new Date().toISOString(), profiles: [], failures: [] };
+    const manifest = { formatVersion: FORMAT_VERSION, exportedAt: new Date().toISOString(), profiles: [], skipped: [], failures: [] };
     for (let index = 0; index < profiles.length; index += 1) {
       const profile = profiles[index];
       onProgress({ current: index + 1, total: profiles.length, name: profile.name });
@@ -294,7 +296,9 @@
         );
         manifest.profiles.push({ id: profile.id, name: profile.name, folder });
       } catch (error) {
-        manifest.failures.push({ id: profile.id, name: profile.name, error: error?.message || "导出失败" });
+        const item = { id: profile.id, name: profile.name, reason: error?.message || "导出失败" };
+        if (error?.code === "report_not_available") manifest.skipped.push(item);
+        else manifest.failures.push({ ...item, error: item.reason });
       }
     }
     if (!manifest.profiles.length) {
@@ -305,9 +309,11 @@
       "命理咨询工作台全部报告导出说明",
       `导出时间：${new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", dateStyle: "long", timeStyle: "medium" }).format(new Date(manifest.exportedAt))}`,
       `成功：${manifest.profiles.length} 份`,
+      `跳过：${manifest.skipped.length} 份`,
       `失败：${manifest.failures.length} 份`,
       "",
       ...manifest.profiles.map((item) => `成功：${item.name}`),
+      ...manifest.skipped.map((item) => `跳过：${item.name}｜${item.reason}`),
       ...manifest.failures.map((item) => `失败：${item.name}｜${item.error}`),
       "",
       "每个档案目录内包含可阅读 PDF 与恢复数据 JSON；导入应用时请选择整个 ZIP，不要单独选择 JSON。",
