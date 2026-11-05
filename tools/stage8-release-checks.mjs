@@ -57,7 +57,7 @@ check("公开配置只包含可公开值且版本与发布一致", () => {
   vm.runInNewContext(configSource, context);
   const config = context.window.MINGLI_CONFIG;
   assert.equal(config.environment, "production");
-  assert.equal(config.databaseSchemaVersion, "2026110409");
+  assert.equal(config.databaseSchemaVersion, "2026110510");
   assert.equal(config.supabasePublishableKey.startsWith("sb_publishable_"), true);
   assert.deepEqual(Object.keys(config).sort(), [
     "databaseSchemaVersion",
@@ -67,11 +67,11 @@ check("公开配置只包含可公开值且版本与发布一致", () => {
     "supabaseUrl",
   ]);
   assert.equal(config.supabaseUrl, "https://resonant-brioche-af680c.netlify.app/api/supabase");
-  assert.match(app, /const APP_VERSION = "product-42"/);
-  assert.match(html, /应用版本<\/span><b>product-42<\/b>/);
-  assert.match(html, /report-utils\.js\?v=product-42/);
-  assert.match(html, /report-ui\.js\?v=product-42/);
-  assert.match(html, /consultation-ui\.js\?v=product-42/);
+  assert.match(app, /const APP_VERSION = "product-43"/);
+  assert.match(html, /应用版本<\/span><b>product-43<\/b>/);
+  assert.match(html, /report-utils\.js\?v=product-43/);
+  assert.match(html, /report-ui\.js\?v=product-43/);
+  assert.match(html, /consultation-ui\.js\?v=product-43/);
 });
 
 check("正式页面只保留一个无版本参数的访问地址", () => {
@@ -115,11 +115,11 @@ check("Supabase 函数目录与 JWT 配置一致", () => {
   }
 });
 
-check("九个数据库迁移连续且都使用事务", () => {
+check("十个数据库迁移连续且都使用事务", () => {
   const files = fs.readdirSync(path.join(root, "supabase/migrations")).sort();
   assert.deepEqual(files.map((file) => file.slice(0, 12)), [
     "202611030001", "202611030002", "202611030003", "202611030004", "202611030005", "202611030006",
-    "202611040007", "202611040008", "202611040009",
+    "202611040007", "202611040008", "202611040009", "202611050010",
   ]);
   files.forEach((file) => {
     const source = read(`supabase/migrations/${file}`).trim();
