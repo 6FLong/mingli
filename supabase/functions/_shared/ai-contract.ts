@@ -132,6 +132,15 @@ export function validateAiResult(result: unknown, facts: Record<string, unknown>
   return [...new Set(errors)];
 }
 
+export function validateDirectionalAnswer(result: unknown, question: string): string[] {
+  const asksForDirection = /能不能|可不可以|会不会|是否|能否|成功吗|能成功|能录取|会录取|该不该|要不要|适不适合/.test(question);
+  if (!asksForDirection) return [];
+  const answer = isRecord(result) && isRecord(result.answer) ? result.answer : {};
+  const conclusion = String(answer.conclusion || "").trim().slice(0, 180);
+  const hasDirection = /更可能|倾向|偏向|可以|不可以|不建议|建议争取|把握较大|把握较小|机会较大|机会较小|大概率|小概率|较难|较有希望/.test(conclusion);
+  return hasDirection ? [] : ["结果型问题没有先给出明确倾向"];
+}
+
 export function mergeReportCore(
   existing: unknown,
   update: Record<string, unknown>,

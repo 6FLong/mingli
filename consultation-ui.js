@@ -20,6 +20,8 @@
     sending: false,
     generation: 0,
   };
+  const PROCESSING_POLL_INTERVAL_MS = 1500;
+  const PROCESSING_POLL_LIMIT = 46;
 
   function element(tag, className = "", text = "") {
     const node = document.createElement(tag);
@@ -141,6 +143,31 @@
     loadEarlierButton.hidden = !state.hasEarlier;
   }
 
+  function resultMessage(response, fallbackCreatedAt) {
+    const result = response?.result && typeof response.result === "object" ? response.result : null;
+    if (!result?.answer) return null;
+    return {
+      id: response.assistantMessageId || `answer-${crypto.randomUUID()}`,
+      role: "assistant",
+      status: "complete",
+      content: result.answer.conclusion || "",
+      structured_content: result,
+      created_at: response.consultedAt || fallbackCreatedAt || new Date().toISOString(),
+    };
+  }
+
+  function showReturnedAnswer(response, optimisticAnswer) {
+    const answer = resultMessage(response, optimisticAnswer.created_at);
+    if (!answer) return false;
+    const index = state.messages.indexOf(optimisticAnswer);
+    if (index >= 0) state.messages.splice(index, 1, answer);
+    else state.messages.push(answer);
+    setCurrentConversation(response.conversationId);
+    renderMessages();
+    revealLatestMessage();
+    return true;
+  }
+
   function revealLatestMessage() {
     global.requestAnimationFrame(() => {
       thread.lastElementChild?.scrollIntoView({ block: "end", behavior: "auto" });
@@ -222,12 +249,50 @@
     }
   }
 
-  async function refreshAfterAnswer(conversationId) {
-    const conversations = await client.listConversations(state.profileId);
-    state.conversations = Array.isArray(conversations) ? conversations : [];
-    setCurrentConversation(conversationId);
-    renderConversationPicker();
-    await loadMessages(conversationId);
+  async function syncCompletedAnswerInBackground(conversationId, generation, attempt = 0) {
+    if (generation !== state.generation || conversationId !== state.conversationId) return;
+    try {
+      const [conversations, rows] = await Promise.all([
+        client.listConversations(state.profileId),
+        client.listMessages(conversationId, null, 30),
+      ]);
+      if (generation !== state.generation || conversationId !== state.conversationId) return;
+      state.conversations = Array.isArray(conversations) ? conversations : state.conversations;
+      setCurrentConversation(conversationId);
+      renderConversationPicker();
+      if (rows.some((message) => message.role === "assistant" && message.status === "complete")) {
+        state.messages = rows;
+        state.oldestMessageAt = rows[0]?.created_at || null;
+        state.hasEarlier = rows.length === 30;
+        renderMessages();
+        return;
+      }
+    } catch {
+      // The returned answer remains visible while cloud list consistency catches up.
+    }
+    if (attempt < 3) {
+      global.setTimeout(() => void syncCompletedAnswerInBackground(conversationId, generation, attempt + 1), 800 * (attempt + 1));
+    }
+  }
+
+  async function waitForProcessingAnswer(conversationId, generation) {
+    for (let attempt = 0; attempt < PROCESSING_POLL_LIMIT; attempt += 1) {
+      if (generation !== state.generation || conversationId !== state.conversationId) return null;
+      const rows = await client.listMessages(conversationId, null, 30);
+      if (generation !== state.generation || conversationId !== state.conversationId) return null;
+      state.messages = rows;
+      state.oldestMessageAt = rows[0]?.created_at || null;
+      state.hasEarlier = rows.length === 30;
+      renderMessages();
+      const completed = rows.find((message) => message.role === "assistant" && message.status === "complete");
+      if (completed) {
+        revealLatestMessage();
+        return completed;
+      }
+      if (rows.some((message) => message.role === "assistant" && message.status === "failed")) return null;
+      await new Promise((resolve) => global.setTimeout(resolve, PROCESSING_POLL_INTERVAL_MS));
+    }
+    return null;
   }
 
   async function submitQuestion(question, questionType, idempotencyKey) {
@@ -264,17 +329,27 @@
       if (generation !== state.generation || profileId !== state.profileId) return;
       if (response.status === "processing") {
         setCurrentConversation(response.conversationId);
-        await loadMessages(response.conversationId);
-        bridge.showToast("问题正在分析，稍后会显示结果");
+        const completed = await waitForProcessingAnswer(response.conversationId, generation);
+        if (completed) {
+          bridge.clearQuestion();
+          bridge.markCurrentProfileConsulted(completed.created_at || new Date().toISOString(), question);
+          global.dispatchEvent(new CustomEvent("mingli:consultation-complete", {
+            detail: { profileId, conversationId: response.conversationId },
+          }));
+        } else if (generation === state.generation) {
+          bridge.showToast("回答仍在生成，请稍后查看本会话");
+        }
         return;
       }
+      if (!showReturnedAnswer(response, optimisticAnswer)) {
+        throw new Error("回答内容暂不可用，请重新分析");
+      }
       bridge.clearQuestion();
-      bridge.markCurrentProfileConsulted(response.consultedAt, question);
-      await refreshAfterAnswer(response.conversationId);
-      bridge.showToast("分析已保存到云端");
+      bridge.markCurrentProfileConsulted(response.consultedAt || new Date().toISOString(), question);
       global.dispatchEvent(new CustomEvent("mingli:consultation-complete", {
         detail: { profileId, conversationId: response.conversationId },
       }));
+      void syncCompletedAnswerInBackground(response.conversationId, generation);
     } catch (error) {
       if (generation !== state.generation || profileId !== state.profileId) return;
       optimisticAnswer.status = "failed";

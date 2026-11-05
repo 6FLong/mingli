@@ -1,5 +1,5 @@
 import { ApiError, authenticateAdministrator } from "../_shared/admin.ts";
-import { collectFactRefs, mergeReportCore, validateAiResult } from "../_shared/ai-contract.ts";
+import { collectFactRefs, mergeReportCore, validateAiResult, validateDirectionalAnswer } from "../_shared/ai-contract.ts";
 import { corsHeaders, isAllowedOrigin, jsonResponse } from "../_shared/http.ts";
 import { serviceRequest, supabaseEnvironment } from "../_shared/supabase.ts";
 
@@ -16,7 +16,11 @@ const SYSTEM_PROMPT = `你是依据陈园编著、邵伟华审订《四柱预测
 你不得修改、纠正或补充结构化事实中不存在的命理条件。
 你不得混入神煞、纳音、生肖、紫微斗数、西方占星或其他体系。
 
-先用现代口语直接回答当前问题，再解释指定《四柱预测学》口径下的子平依据。
+先用现代口语正面回答当前问题，再解释指定《四柱预测学》口径下的子平依据。
+对于“能不能、会不会、是否、成功吗、能录取吗、该不该”等结果型或选择型问题，conclusion 第一段必须先给出清晰倾向，例如“更可能能”“更可能不能”“目前偏向可以”“目前不建议”，不能用“需要综合判断”“存在机会”“建议结合实际”等空话回避。
+命理只能提供趋势而不能保证现实结果，因此可以使用“更可能、倾向、把握较大/较小”等有方向但不绝对的表达；随后明确说明哪些现实行动会提高或降低成功概率。
+如果用户问明天面试能否成功，而 bazi-facts-v1 只有流年、没有流月流日，仍要先回答整体倾向，再明确“无法仅凭当前事实精确断定明天”，不能自行补算明日干支。
+现代解释必须说人话，围绕用户原问题，不得只复述身强、十神、格局、用神等术语。
 每条命理判断必须引用真实存在的 factRefs。
 证据不足时明确说明不能确定，并指出需要补充的信息。
 时间类问题必须以 temporalContext.currentDateBeijing 为起点，只讨论从当前日期往后的窗口，不得把已经过去的年份或时段写成未来建议。
@@ -27,7 +31,7 @@ const SYSTEM_PROMPT = `你是依据陈园编著、邵伟华审订《四柱预测
 
 const OUTPUT_CONTRACT = {
   answer: {
-    conclusion: "直接回答当前问题",
+    conclusion: "先给出能/不能、偏向可以/不建议等明确倾向，再说明条件",
     modernExplanation: "现代口语解释",
     zipingReasoning: [{ claim: "一条子平判断", explanation: "为什么支持该判断", factRefs: ["strength.label"] }],
     suggestions: ["现实建议"],
@@ -358,7 +362,7 @@ Deno.serve(async (request) => {
     ];
 
     let result = await callDeepSeek(messages);
-    let validationErrors = validateAiResult(result, facts);
+    let validationErrors = [...validateAiResult(result, facts), ...validateDirectionalAnswer(result, question)];
     if (validationErrors.length) {
       result = await callDeepSeek([
         ...messages,
@@ -367,7 +371,7 @@ Deno.serve(async (request) => {
           content: `上一次输出未通过服务端校验：${validationErrors.join("；")}。重新生成完整 JSON，不得解释错误，不得引用不存在的事实。`,
         },
       ]);
-      validationErrors = validateAiResult(result, facts);
+      validationErrors = [...validateAiResult(result, facts), ...validateDirectionalAnswer(result, question)];
     }
     if (validationErrors.length) {
       throw new ApiError(502, "ai_contract_invalid", "AI 回答没有通过命理事实校验，请重试");

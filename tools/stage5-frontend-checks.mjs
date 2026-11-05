@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const consultationUiSource = fs.readFileSync(path.join(root, "consultation-ui.js"), "utf8");
 const bundledModules =
   process.env.CODEX_NODE_MODULES ||
   "C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules";
@@ -18,7 +19,7 @@ const profileOne = "22222222-2222-4222-8222-222222222222";
 const profileTwo = "33333333-3333-4333-8333-333333333333";
 const conversationId = "44444444-4444-4444-8444-444444444444";
 const chartId = "55555555-5555-4555-8555-555555555555";
-const desktopState = { answered: false, payloads: [] };
+const desktopState = { answered: false, payloads: [], delayedMessageReads: 3 };
 
 const profiles = [
   {
@@ -148,10 +149,23 @@ async function mockAiCloud(route, state) {
     }
     return json(route, []);
   }
-  if (pathname === "/rest/v1/messages" && method === "GET") return json(route, state.answered ? messages : []);
+  if (pathname === "/rest/v1/messages" && method === "GET") {
+    if (state.processingMode && state.payloads.length === 1 && Number(state.processingReads || 0) > 0) {
+      state.processingReads -= 1;
+      return json(route, [messages[0], { ...messages[1], status: "processing", structured_content: null, content: "" }]);
+    }
+    if (state.answered && Number(state.delayedMessageReads || 0) > 0) {
+      state.delayedMessageReads -= 1;
+      return json(route, []);
+    }
+    return json(route, state.answered ? messages : []);
+  }
   if (pathname === "/functions/v1/ai-consult") {
     state.payloads.push(request.postDataJSON());
     state.answered = true;
+    if (state.processingMode && state.payloads.length === 1) {
+      return json(route, { conversationId, assistantMessageId: messages[1].id, status: "processing", reused: true }, 202);
+    }
     return json(route, { conversationId, assistantMessageId: messages[1].id, status: "complete", result: aiResult, consultedAt: "2026-11-03T01:00:01.000Z", reused: false });
   }
   if (pathname === "/rest/v1/profiles" && ["POST", "PATCH", "DELETE"].includes(method)) return json(route, []);
@@ -159,7 +173,7 @@ async function mockAiCloud(route, state) {
 }
 
 async function verifyMobileConsultFlow(browserType, launchOptions, contextOptions, name) {
-  const state = { answered: false, payloads: [] };
+  const state = { answered: false, payloads: [], processingMode: name.includes("iPhone"), processingReads: 2 };
   const deviceBrowser = await browserType.launch({ headless: true, ...launchOptions });
   try {
     const page = await deviceBrowser.newPage(contextOptions);
@@ -259,6 +273,7 @@ try {
   await page.locator("#questionText").fill(question);
   await page.locator("#generateResult").click();
   await page.locator(".chat-message.is-assistant.status-complete").waitFor({ state: "visible" });
+  assert.ok(desktopState.delayedMessageReads > 0, "回答展示不应等待云端消息列表同步完成");
   const sentPayload = desktopState.payloads[0];
   assert.equal(sentPayload.profileId, profileOne);
   assert.equal(sentPayload.conversationId, null);
@@ -271,6 +286,8 @@ try {
     assert.match(answerText, new RegExp(expected));
   }
   assert.equal(await page.locator("#questionText").inputValue(), "");
+  assert.doesNotMatch(consultationUiSource, /分析已保存到云端/);
+  assert.ok(consultationUiSource.indexOf("showReturnedAnswer(response") < consultationUiSource.indexOf("syncCompletedAnswerInBackground(response"));
 
   if (process.env.MINGLI_CAPTURE_VISUALS === "YES") {
     const artifacts = path.join(root, "tools", ".artifacts");

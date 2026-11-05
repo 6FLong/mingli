@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { collectFactRefs, factRefValue, mergeReportCore, validateAiResult } from "../supabase/functions/_shared/ai-contract.ts";
+import { collectFactRefs, factRefValue, mergeReportCore, validateAiResult, validateDirectionalAnswer } from "../supabase/functions/_shared/ai-contract.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
@@ -134,6 +134,19 @@ check("时间类回答锚定当前北京时间且禁止 AI 自行补算流月流
   assert.match(aiSource, /不把过去时段当作未来建议/);
   assert.match(aiSource, /没有流月、流日事实时不得自行补算月份或日期/);
   assert.match(aiSource, /当前问题不属于健康、生育、法律或投资时，不要添加这些领域的无关免责声明/);
+});
+
+check("结果型问题必须先给出明确倾向并保留精度边界", () => {
+  const vague = resultFixture();
+  vague.answer.conclusion = "这个问题需要结合实际情况综合判断。";
+  assert.match(validateDirectionalAnswer(vague, "我明天面试能不能成功？").join("；"), /没有先给出明确倾向/);
+  const direct = resultFixture();
+  direct.answer.conclusion = "目前倾向可以，积极准备会提高录取机会。";
+  assert.deepEqual(validateDirectionalAnswer(direct, "我明天面试能不能成功？"), []);
+  assert.deepEqual(validateDirectionalAnswer(vague, "请分析我的职业发展方向"), []);
+  assert.match(aiSource, /明天面试能否成功/);
+  assert.match(aiSource, /现代解释必须说人话/);
+  assert.match(aiSource, /validateDirectionalAnswer\(result, question\)/);
 });
 
 check("咨询使用事务锁、幂等消息和服务端专用 RPC", () => {
