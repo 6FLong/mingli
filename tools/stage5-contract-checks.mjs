@@ -36,7 +36,6 @@ function resultFixture() {
       ],
       suggestions: ["先核实条件"],
       uncertainties: ["现实条件仍需确认"],
-      followUpQuestions: ["目前最担心哪项条件？"],
     },
     clientSummary: {
       coreTopics: ["职业选择"],
@@ -145,8 +144,19 @@ check("结果型问题必须先给出明确倾向并保留精度边界", () => {
   assert.deepEqual(validateDirectionalAnswer(direct, "我明天面试能不能成功？"), []);
   assert.deepEqual(validateDirectionalAnswer(vague, "请分析我的职业发展方向"), []);
   assert.match(aiSource, /明天面试能否成功/);
-  assert.match(aiSource, /现代解释必须说人话/);
+  assert.match(aiSource, /都必须说普通人听得懂的话/);
   assert.match(aiSource, /validateDirectionalAnswer\(result, question\)/);
+});
+
+check("回答简短自然且不生成推荐追问", () => {
+  const verbose = resultFixture();
+  verbose.answer.conclusion = "从命理角度来看，这个问题需要综合判断。";
+  assert.match(validateAiResult(verbose, facts).join("；"), /回避式开场/);
+  const followUp = resultFixture();
+  followUp.answer.followUpQuestions = ["还想问什么？"];
+  assert.match(validateAiResult(followUp, facts).join("；"), /不应包含推荐追问/);
+  assert.doesNotMatch(aiSource, /followUpQuestions/);
+  assert.match(aiSource, /不要替用户设计或推荐下一条问题/);
 });
 
 check("咨询使用事务锁、幂等消息和服务端专用 RPC", () => {

@@ -123,11 +123,13 @@
                 </div>
                 <span id="analysisTone"></span>
               </div>
-              <div class="answer-block"><h3>直接回答</h3><p id="resultConclusion"></p></div>
-              <div class="answer-block"><h3>现代解释</h3><p id="resultExplanation"></p></div>
-              <div class="answer-block"><h3>命理依据</h3><ul class="evidence-list" id="resultEvidence"></ul></div>
-              <div class="answer-block"><h3>现实建议</h3><p id="resultSuggestion"></p></div>
-              <div class="answer-block" id="resultUncertaintyBlock" hidden><h3>不确定性</h3><ul class="evidence-list" id="resultUncertainty"></ul></div>
+              <div class="answer-block answer-main"><h3>回答</h3><p id="resultConclusion"></p><p id="resultExplanation"></p></div>
+              <details class="answer-details">
+                <summary>详细解释</summary>
+                <div class="answer-block"><h3>为什么这样看</h3><ul class="evidence-list" id="resultEvidence"></ul></div>
+                <div class="answer-block"><h3>接下来怎么做</h3><p id="resultSuggestion"></p></div>
+                <div class="answer-block" id="resultUncertaintyBlock" hidden><h3>还要留意</h3><ul class="evidence-list" id="resultUncertainty"></ul></div>
+              </details>
             </section>
           </div>
 

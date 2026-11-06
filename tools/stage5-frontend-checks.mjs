@@ -71,7 +71,6 @@ const aiResult = {
     ],
     suggestions: ["先确认薪资和试用期"],
     uncertainties: ["公司真实资源仍需现实核实"],
-    followUpQuestions: ["新岗位最吸引你的条件是什么？"],
   },
   clientSummary: {
     coreTopics: ["事业"], confirmedContext: [], keyConclusions: [], decisionsAndOutcomes: [], openQuestions: [], riskNotes: [],
@@ -281,10 +280,17 @@ try {
   assert.equal(sentPayload.questionType, "自定义");
   assert.match(sentPayload.idempotencyKey, /^[0-9a-f-]{36}$/);
 
-  const answerText = await page.locator(".chat-message.is-assistant").innerText();
-  for (const expected of ["直接回答", "现代解释", "命理依据", "现实建议", "不确定性与边界"]) {
-    assert.match(answerText, new RegExp(expected));
-  }
+  const answer = page.locator(".chat-message.is-assistant");
+  const answerText = await answer.innerText();
+  assert.match(answerText, /可以考虑机会，但先核实岗位条件/);
+  assert.match(answerText, /当前更适合先验证/);
+  assert.match(answerText, /详细解释/);
+  assert.doesNotMatch(answerText, /直接回答|现代解释|可以继续追问/);
+  assert.equal(await answer.locator(".chat-answer-details").evaluate((element) => element.open), false);
+  await answer.locator(".chat-answer-details > summary").click();
+  const detailText = await answer.locator(".chat-answer-detail-content").innerText();
+  for (const expected of ["为什么这样看", "接下来怎么做", "还要留意"]) assert.match(detailText, new RegExp(expected));
+  assert.doesNotMatch(detailText, /strength\.label|可以继续追问/);
   assert.equal(await page.locator("#questionText").inputValue(), "");
   assert.doesNotMatch(consultationUiSource, /分析已保存到云端/);
   assert.ok(consultationUiSource.indexOf("showReturnedAnswer(response") < consultationUiSource.indexOf("syncCompletedAnswerInBackground(response"));

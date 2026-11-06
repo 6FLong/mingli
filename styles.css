@@ -2708,6 +2708,68 @@ body,
   }
 }
 
+.chat-answer-main p {
+  margin: 0;
+  color: #383044;
+  font-size: 15px;
+  line-height: 1.75;
+  white-space: pre-line;
+}
+
+.chat-answer-details,
+.answer-details {
+  margin-top: 12px;
+  border-top: 1px solid #ece5f2;
+}
+
+.chat-answer-details > summary,
+.answer-details > summary {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #6d51b7;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+  list-style: none;
+}
+
+.chat-answer-details > summary::-webkit-details-marker,
+.answer-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.chat-answer-details > summary::after,
+.answer-details > summary::after {
+  content: "+";
+  font-size: 19px;
+  font-weight: 500;
+}
+
+.chat-answer-details[open] > summary::after,
+.answer-details[open] > summary::after {
+  content: "−";
+}
+
+.chat-answer-detail-content {
+  padding-bottom: 3px;
+}
+
+.reasoning-item strong {
+  display: block;
+  color: #43384f;
+  font-size: 13px;
+}
+
+.answer-main p + p {
+  margin-top: 8px;
+}
+
+.answer-details .answer-block {
+  box-shadow: none;
+}
+
 .page-action,
 .page-action.icon-only {
   width: 38px;

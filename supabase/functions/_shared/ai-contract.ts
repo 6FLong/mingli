@@ -60,9 +60,12 @@ export function validateAiResult(result: unknown, facts: Record<string, unknown>
   if (!report) errors.push("缺少 reportUpdate");
   if (errors.length) return errors;
 
-  for (const key of ["conclusion", "modernExplanation"] as const) {
-    const value = String(answer[key] || "").trim();
-    if (!value || value.length > 4000) errors.push(`answer.${key} 无效`);
+  const conclusion = String(answer.conclusion || "").trim();
+  const modernExplanation = String(answer.modernExplanation || "").trim();
+  if (!conclusion || conclusion.length > 220) errors.push("answer.conclusion 无效");
+  if (!modernExplanation || modernExplanation.length > 600) errors.push("answer.modernExplanation 无效");
+  if (/^(?:从命理角度(?:来看)?|综合来看|需要综合判断|这个问题需要结合)/.test(conclusion)) {
+    errors.push("answer.conclusion 使用了回避式开场");
   }
   const reasoning = Array.isArray(answer.zipingReasoning) ? answer.zipingReasoning : [];
   if (!reasoning.length || reasoning.length > 12) errors.push("zipingReasoning 数量无效");
@@ -80,9 +83,10 @@ export function validateAiResult(result: unknown, facts: Record<string, unknown>
       if (factRefValue(facts, reference) === undefined) errors.push(`不存在的 factRef: ${reference}`);
     });
   });
-  for (const key of ["suggestions", "uncertainties", "followUpQuestions"] as const) {
+  for (const key of ["suggestions", "uncertainties"] as const) {
     if (!stringArray(answer[key], 12, 800)) errors.push(`answer.${key} 无效`);
   }
+  if ("followUpQuestions" in answer) errors.push("answer 不应包含推荐追问");
 
   const summaryKeys = [
     "coreTopics",

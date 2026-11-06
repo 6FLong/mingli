@@ -64,13 +64,12 @@
   function renderReasoning(container, reasoning) {
     if (!Array.isArray(reasoning) || !reasoning.length) return;
     const section = element("section", "chat-answer-section");
-    section.append(element("h4", "", "命理依据"));
+    section.append(element("h4", "", "为什么这样看"));
     reasoning.forEach((item) => {
-      const details = element("details", "reasoning-item");
-      const summary = element("summary", "", item.claim || "判断依据");
+      const details = element("div", "reasoning-item");
+      const summary = element("strong", "", item.claim || "判断依据");
       const explanation = element("p", "", item.explanation || "");
-      const refs = element("p", "fact-reference", `依据：${(item.factRefs || []).join("、")}`);
-      details.append(summary, explanation, refs);
+      details.append(summary, explanation);
       section.append(details);
     });
     container.append(section);
@@ -116,12 +115,17 @@
     } else {
       const answer = message.structured_content?.answer;
       if (answer) {
-        appendTextSection(bubble, "直接回答", answer.conclusion);
-        appendTextSection(bubble, "现代解释", answer.modernExplanation);
-        renderReasoning(bubble, answer.zipingReasoning);
-        renderListSection(bubble, "现实建议", answer.suggestions);
-        renderListSection(bubble, "不确定性与边界", answer.uncertainties);
-        renderListSection(bubble, "可以继续追问", answer.followUpQuestions);
+        const main = element("section", "chat-answer-main");
+        main.append(element("p", "", [answer.conclusion, answer.modernExplanation].filter(Boolean).join("\n")));
+        bubble.append(main);
+        const details = element("details", "chat-answer-details");
+        details.append(element("summary", "", "详细解释"));
+        const detailContent = element("div", "chat-answer-detail-content");
+        renderReasoning(detailContent, answer.zipingReasoning);
+        renderListSection(detailContent, "接下来怎么做", answer.suggestions);
+        renderListSection(detailContent, "还要留意", answer.uncertainties);
+        details.append(detailContent);
+        bubble.append(details);
       } else {
         bubble.append(element("p", "", message.content || "回答内容暂不可用"));
       }
