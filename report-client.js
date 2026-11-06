@@ -289,7 +289,7 @@
 
   async function recoveryData(data, generatedAt) {
     const payload = {
-      app: "命理咨询工作台",
+      app: "有点玄",
       formatVersion: FORMAT_VERSION,
       reportVersion: REPORT_VERSION,
       exportedAt: generatedAt,
@@ -428,7 +428,7 @@
       throw new Error(`全部报告导出失败：${firstFailure}`);
     }
     const readableSummary = [
-      "命理咨询工作台全部报告导出说明",
+      "有点玄全部报告导出说明",
       `导出时间：${new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", dateStyle: "long", timeStyle: "medium" }).format(new Date(manifest.exportedAt))}`,
       `成功：${manifest.profiles.length} 份`,
       `跳过：${manifest.skipped.length} 份`,

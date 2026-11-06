@@ -1,13 +1,13 @@
 {
-  "name": "命理",
-  "short_name": "命理",
+  "name": "有点玄",
+  "short_name": "有点玄",
   "id": "./",
-  "description": "个人使用的云端命理咨询工作台",
+  "description": "用现代语言读懂自己的四柱命盘",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#e5f1ef",
+  "background_color": "#fff9fd",
+  "theme_color": "#fff9fd",
   "orientation": "portrait",
   "lang": "zh-CN",
   "icons": [

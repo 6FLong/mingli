@@ -81,7 +81,7 @@
       context.stroke();
       context.fillStyle = "#788684";
       context.font = '24px "PingFang SC", "Microsoft YaHei", sans-serif';
-      context.fillText(`命理咨询工作台 · 第 ${pages.length} 页`, margin, height - 55);
+      context.fillText(`有点玄 · 第 ${pages.length} 页`, margin, height - 55);
     }
 
     function line(text, options = {}) {
