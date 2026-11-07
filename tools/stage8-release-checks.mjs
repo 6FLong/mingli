@@ -57,7 +57,7 @@ check("公开配置只包含可公开值且版本与发布一致", () => {
   vm.runInNewContext(configSource, context);
   const config = context.window.MINGLI_CONFIG;
   assert.equal(config.environment, "production");
-  assert.equal(config.databaseSchemaVersion, "2026110510");
+  assert.equal(config.databaseSchemaVersion, "2026110611");
   assert.equal(config.supabasePublishableKey.startsWith("sb_publishable_"), true);
   assert.deepEqual(Object.keys(config).sort(), [
     "databaseSchemaVersion",
@@ -67,11 +67,11 @@ check("公开配置只包含可公开值且版本与发布一致", () => {
     "supabaseUrl",
   ]);
   assert.equal(config.supabaseUrl, "https://resonant-brioche-af680c.netlify.app/api/supabase");
-  assert.match(app, /const APP_VERSION = "product-43"/);
-  assert.match(html, /应用版本<\/span><b>product-43<\/b>/);
-  assert.match(html, /report-utils\.js\?v=product-43/);
-  assert.match(html, /report-ui\.js\?v=product-43/);
-  assert.match(html, /consultation-ui\.js\?v=product-43/);
+  assert.match(app, /const APP_VERSION = "product-44"/);
+  assert.match(html, /应用版本<\/span><b>product-44<\/b>/);
+  assert.match(html, /report-utils\.js\?v=product-44/);
+  assert.match(html, /report-ui\.js\?v=product-44/);
+  assert.match(html, /consultation-ui\.js\?v=product-44/);
 });
 
 check("正式页面只保留一个无版本参数的访问地址", () => {
