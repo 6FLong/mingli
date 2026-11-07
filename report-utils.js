@@ -146,31 +146,102 @@
       line(overview.method, { size: 23, lineHeight: 38, color: "#637370", indent: 28, after: 18 });
     }
 
-    function distributionChart(chart) {
+    function elementWheelChart(chart) {
       if (!chart?.items?.length) return;
       heading(chart.title);
       line(chart.caption || "", { size: 22, lineHeight: 34, color: "#788684", after: 14 });
-      const rowHeight = 54;
-      const chartHeight = chart.items.length * rowHeight + 18;
-      ensure(chartHeight);
-      const labelWidth = 92;
-      const valueWidth = 64;
-      const trackX = margin + labelWidth;
-      const trackWidth = width - margin * 2 - labelWidth - valueWidth;
-      chart.items.forEach((item, index) => {
-        const rowY = y + index * rowHeight;
-        context.font = '700 24px "PingFang SC", "Microsoft YaHei", sans-serif';
-        context.fillStyle = "#334744";
-        context.fillText(item.label, margin, rowY + 8);
-        context.fillStyle = "#e8efee";
-        context.fillRect(trackX, rowY + 13, trackWidth, 20);
-        context.fillStyle = item.color || "#397f78";
-        context.fillRect(trackX, rowY + 13, Math.max(item.value > 0 ? 6 : 0, trackWidth * (item.ratio || 0)), 20);
-        context.fillStyle = "#52615f";
-        context.font = '600 22px "PingFang SC", "Microsoft YaHei", sans-serif';
-        context.fillText(item.valueLabel, trackX + trackWidth + 18, rowY + 8);
+      ensure(440);
+      const centerX = width / 2;
+      const centerY = y + 205;
+      const positions = [
+        { x: centerX, y: centerY - 145 },
+        { x: centerX + 190, y: centerY - 30 },
+        { x: centerX + 118, y: centerY + 150 },
+        { x: centerX - 118, y: centerY + 150 },
+        { x: centerX - 190, y: centerY - 30 },
+      ];
+      context.strokeStyle = "#c8bad8";
+      context.lineWidth = 4;
+      positions.forEach((point, index) => {
+        const next = positions[(index + 1) % positions.length];
+        const dx = next.x - point.x;
+        const dy = next.y - point.y;
+        const length = Math.hypot(dx, dy);
+        const startX = point.x + (dx / length) * 68;
+        const startY = point.y + (dy / length) * 68;
+        const endX = next.x - (dx / length) * 68;
+        const endY = next.y - (dy / length) * 68;
+        context.beginPath();
+        context.moveTo(startX, startY);
+        context.lineTo(endX, endY);
+        context.stroke();
+        const angle = Math.atan2(dy, dx);
+        context.fillStyle = "#c8bad8";
+        context.beginPath();
+        context.moveTo(endX, endY);
+        context.lineTo(endX - 16 * Math.cos(angle - 0.55), endY - 16 * Math.sin(angle - 0.55));
+        context.lineTo(endX - 16 * Math.cos(angle + 0.55), endY - 16 * Math.sin(angle + 0.55));
+        context.closePath();
+        context.fill();
       });
-      y += chartHeight;
+      const byLabel = Object.fromEntries(chart.items.map((item) => [item.label, item]));
+      ["火", "土", "金", "水", "木"].forEach((label, index) => {
+        const item = byLabel[label];
+        const point = positions[index];
+        context.fillStyle = "#ffffff";
+        context.strokeStyle = item?.color || "#8065ce";
+        context.lineWidth = 5;
+        context.beginPath();
+        context.arc(point.x, point.y, 62, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+        context.textAlign = "center";
+        context.fillStyle = "#40374d";
+        context.font = '800 34px "PingFang SC", "Microsoft YaHei", sans-serif';
+        context.fillText(label, point.x, point.y - 24);
+        context.fillStyle = "#756b82";
+        context.font = '700 24px "PingFang SC", "Microsoft YaHei", sans-serif';
+        context.fillText(item?.percentLabel || "0%", point.x, point.y + 20);
+      });
+      context.fillStyle = "#9a8ca8";
+      context.font = '700 24px "PingFang SC", "Microsoft YaHei", sans-serif';
+      context.fillText("相生循环", centerX, centerY - 12);
+      context.textAlign = "left";
+      y += 420;
+    }
+
+    function tenGodColumnChart(chart) {
+      if (!chart?.items?.length) return;
+      heading(chart.title);
+      line(chart.caption || "", { size: 22, lineHeight: 34, color: "#788684", after: 14 });
+      ensure(340);
+      const chartLeft = margin + 20;
+      const chartWidth = width - margin * 2 - 40;
+      const baseline = y + 220;
+      const step = chartWidth / chart.items.length;
+      context.strokeStyle = "#e3ddea";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(chartLeft, baseline);
+      context.lineTo(chartLeft + chartWidth, baseline);
+      context.stroke();
+      chart.items.forEach((item, index) => {
+        const x = chartLeft + index * step + step / 2;
+        const barHeight = Math.max(item.value > 0 ? 14 : 3, 190 * (item.ratio || 0));
+        context.fillStyle = "#f2edf6";
+        context.fillRect(x - 28, baseline - 190, 56, 190);
+        context.fillStyle = item.color || "#8065ce";
+        context.fillRect(x - 28, baseline - barHeight, 56, barHeight);
+        context.textAlign = "center";
+        context.fillStyle = "#51485e";
+        context.font = '700 20px "PingFang SC", "Microsoft YaHei", sans-serif';
+        context.fillText(item.label, x, baseline + 18);
+        context.fillStyle = "#8a8093";
+        context.font = '600 18px "PingFang SC", "Microsoft YaHei", sans-serif';
+        context.fillText(item.valueLabel, x, baseline + 48);
+      });
+      context.textAlign = "left";
+      y += 300;
     }
 
     function annualChart(chart) {
@@ -238,8 +309,8 @@
     y += 28;
 
     overviewCard(report.overview);
-    distributionChart(report.visuals?.elements);
-    distributionChart(report.visuals?.tenGods);
+    elementWheelChart(report.visuals?.elements);
+    tenGodColumnChart(report.visuals?.tenGods);
     annualChart(report.visuals?.annuals);
 
     report.sections.forEach((section) => {

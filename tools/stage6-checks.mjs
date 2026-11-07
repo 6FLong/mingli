@@ -281,7 +281,8 @@ try {
   assert.match(await page.locator("#reportPreviewContent").innerText(), /五行结构/);
   assert.match(await page.locator("#reportPreviewContent").innerText(), /十神分布/);
   assert.match(await page.locator("#reportPreviewContent").innerText(), /近年流年节奏/);
-  assert.equal(await page.locator(".report-bar-row").count(), 15);
+  assert.equal(await page.locator(".report-element-node").count(), 5);
+  assert.equal(await page.locator(".report-ten-god-column").count(), 10);
   assert.equal(await page.locator(".report-annual-label").count(), 3);
   const reportLayout = await page.evaluate(() => ({
     viewportWidth: document.documentElement.clientWidth,
@@ -362,6 +363,7 @@ try {
   assert.equal(packageInfo.archiveSectionTitles.includes("完整咨询记录"), true);
   assert.equal(packageInfo.visuals.elements.items.length, 5);
   assert.equal(packageInfo.visuals.tenGods.items.length, 10);
+  assert.ok(new Set(packageInfo.visuals.tenGods.items.map((item) => item.color)).size >= 5, "十神图不应使用单一颜色");
   assert.equal(packageInfo.visuals.annuals.items.length, 3);
   assert.match(packageInfo.visuals.annuals.caption, /不是成功率或运势评分/);
   assert.equal(packageInfo.recovery.profile.name, profile.name);

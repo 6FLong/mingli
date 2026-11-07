@@ -15,6 +15,11 @@
   });
   const ELEMENT_COLORS = Object.freeze({ 木: "#3f8f6b", 火: "#d86457", 土: "#a77a48", 金: "#c2963d", 水: "#397f9e" });
   const TEN_GOD_ORDER = Object.freeze(["比肩", "劫财", "食神", "伤官", "正财", "偏财", "正官", "七杀", "正印", "偏印"]);
+  const TEN_GOD_COLORS = Object.freeze({
+    比肩: "#5c9bd5", 劫财: "#497bc2", 食神: "#50b99a", 伤官: "#2f9d77",
+    正财: "#f08a9b", 偏财: "#df617c", 正官: "#9b78c8", 七杀: "#7455a5",
+    正印: "#f2ad4c", 偏印: "#d88b35",
+  });
 
   function ownerId() {
     const value = cloud?.session?.user?.id;
@@ -127,6 +132,7 @@
 
   function distributionItems(values, order, colors = {}) {
     const max = Math.max(1, ...order.map((label) => Number(values?.[label] || 0)));
+    const total = Math.max(1, order.reduce((sum, label) => sum + Number(values?.[label] || 0), 0));
     return order.map((label) => {
       const value = Number(values?.[label] || 0);
       return {
@@ -134,6 +140,8 @@
         value,
         valueLabel: Number.isInteger(value) ? String(value) : value.toFixed(1),
         ratio: value / max,
+        share: value / total,
+        percentLabel: `${Math.round((value / total) * 100)}%`,
         color: colors[label] || "#397f78",
       };
     });
@@ -266,7 +274,7 @@
         tenGods: {
           title: "十神分布",
           caption: "柱形只表示结构中出现的相对次数，不代表能力高低或现实结果。",
-          items: distributionItems(facts.tenGodCounts || {}, TEN_GOD_ORDER),
+          items: distributionItems(facts.tenGodCounts || {}, TEN_GOD_ORDER, TEN_GOD_COLORS),
         },
         annuals: {
           title: "近年流年节奏",

@@ -50,21 +50,91 @@
     preview.replaceChildren();
   }
 
-  function renderDistribution(chart) {
+  function renderElementWheel(chart) {
     const block = element("section", "report-visual-section");
     block.append(element("h3", "", chart.title), element("p", "report-chart-caption", chart.caption));
-    const bars = element("div", "report-bar-chart");
-    chart.items.forEach((item) => {
-      const row = element("div", "report-bar-row");
-      const track = element("span", "report-bar-track");
-      const fill = element("i", "report-bar-fill");
-      fill.style.width = `${Math.max(0, Math.min(100, item.ratio * 100))}%`;
-      fill.style.backgroundColor = item.color;
-      track.append(fill);
-      row.append(element("b", "", item.label), track, element("em", "", item.valueLabel));
-      bars.append(row);
+    const wheel = element("div", "report-element-wheel");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 320 300");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "五行相生关系与结构占比");
+    const defs = document.createElementNS(svg.namespaceURI, "defs");
+    const marker = document.createElementNS(svg.namespaceURI, "marker");
+    marker.setAttribute("id", "element-arrow");
+    marker.setAttribute("viewBox", "0 0 10 10");
+    marker.setAttribute("refX", "8");
+    marker.setAttribute("refY", "5");
+    marker.setAttribute("markerWidth", "5");
+    marker.setAttribute("markerHeight", "5");
+    marker.setAttribute("orient", "auto-start-reverse");
+    const arrow = document.createElementNS(svg.namespaceURI, "path");
+    arrow.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
+    arrow.setAttribute("fill", "#b8a9cc");
+    marker.append(arrow);
+    defs.append(marker);
+    svg.append(defs);
+    const positions = [{ x: 160, y: 48 }, { x: 265, y: 126 }, { x: 225, y: 244 }, { x: 95, y: 244 }, { x: 55, y: 126 }];
+    positions.forEach((point, index) => {
+      const next = positions[(index + 1) % positions.length];
+      const line = document.createElementNS(svg.namespaceURI, "line");
+      line.setAttribute("x1", String(point.x));
+      line.setAttribute("y1", String(point.y));
+      line.setAttribute("x2", String(next.x));
+      line.setAttribute("y2", String(next.y));
+      line.setAttribute("class", "report-element-link");
+      line.setAttribute("marker-end", "url(#element-arrow)");
+      svg.append(line);
     });
-    block.append(bars);
+    const elementPositions = { 火: positions[0], 土: positions[1], 金: positions[2], 水: positions[3], 木: positions[4] };
+    chart.items.forEach((item) => {
+      const point = elementPositions[item.label];
+      const group = document.createElementNS(svg.namespaceURI, "g");
+      group.setAttribute("class", "report-element-node");
+      const circle = document.createElementNS(svg.namespaceURI, "circle");
+      circle.setAttribute("cx", String(point.x));
+      circle.setAttribute("cy", String(point.y));
+      circle.setAttribute("r", "37");
+      circle.setAttribute("fill", `${item.color}18`);
+      circle.setAttribute("stroke", item.color);
+      const name = document.createElementNS(svg.namespaceURI, "text");
+      name.setAttribute("x", String(point.x));
+      name.setAttribute("y", String(point.y - 3));
+      name.setAttribute("class", "report-element-name");
+      name.textContent = item.label;
+      const value = document.createElementNS(svg.namespaceURI, "text");
+      value.setAttribute("x", String(point.x));
+      value.setAttribute("y", String(point.y + 18));
+      value.setAttribute("class", "report-element-value");
+      value.textContent = item.percentLabel;
+      group.append(circle, name, value);
+      svg.append(group);
+    });
+    const center = document.createElementNS(svg.namespaceURI, "text");
+    center.setAttribute("x", "160");
+    center.setAttribute("y", "151");
+    center.setAttribute("class", "report-element-center");
+    center.textContent = "相生循环";
+    svg.append(center);
+    wheel.append(svg);
+    block.append(wheel);
+    return block;
+  }
+
+  function renderTenGodColumns(chart) {
+    const block = element("section", "report-visual-section");
+    block.append(element("h3", "", chart.title), element("p", "report-chart-caption", chart.caption));
+    const columns = element("div", "report-ten-god-columns");
+    chart.items.forEach((item) => {
+      const column = element("div", "report-ten-god-column");
+      const plot = element("div", "report-ten-god-plot");
+      const bar = element("i", "");
+      bar.style.height = `${Math.max(item.value > 0 ? 8 : 2, Math.min(100, item.ratio * 100))}%`;
+      bar.style.backgroundColor = item.color;
+      plot.append(bar);
+      column.append(plot, element("b", "", item.label), element("span", "", item.valueLabel));
+      columns.append(column);
+    });
+    block.append(columns);
     return block;
   }
 
@@ -136,8 +206,8 @@
     );
     preview.replaceChildren(
       overview,
-      renderDistribution(presentation.visuals.elements),
-      renderDistribution(presentation.visuals.tenGods),
+      renderElementWheel(presentation.visuals.elements),
+      renderTenGodColumns(presentation.visuals.tenGods),
       renderAnnualTrend(presentation.visuals.annuals),
       ...presentation.sections.map((section) => {
         const block = element("section", "report-preview-section");
