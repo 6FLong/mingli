@@ -111,7 +111,7 @@ check("数据库删除失败时恢复原报告，极端部分失败写入专用�
 
 check("前端明确二次确认删除范围并只给到期客户显示更新报告", () => {
   assert.match(app, /永久删除「\$\{profile\.name\}」/);
-  assert.match(app, /请先确认报告 ZIP 已保存到本地/);
+  assert.match(app, /请先确认档案备份已保存到本地/);
   assert.match(app, /updateProfileReportAction"\)\.hidden = !getProfileExpiry\(profile\)\.expired/);
   assert.match(app, /MingliReportUi\.refreshProfile\(profileId\)/);
 });

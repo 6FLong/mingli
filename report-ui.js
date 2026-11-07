@@ -276,10 +276,9 @@
     setBusy(true, "打包中");
     try {
       const result = await client.saveProfilePackage(profileId);
-      bridge.showToast(result.cloudSynced ? "报告 ZIP 已保存" : "ZIP 已保存，云端报告暂未更新");
-      if (profileId === currentProfileId) await loadProfile(profileId);
+      bridge.showToast("档案备份已保存");
     } catch (error) {
-      bridge.showToast(error?.message || "报告保存失败");
+      bridge.showToast(error?.message || "档案导出失败");
     } finally {
       setBusy(false);
     }
@@ -290,9 +289,9 @@
     setBusy(true, "准备 PDF");
     try {
       await client.downloadClientReport(currentProfileId);
-      bridge.showToast("客户 PDF 已下载");
+      bridge.showToast("分析报告 PDF 已下载");
     } catch (error) {
-      bridge.showToast(error?.message || "客户 PDF 下载失败");
+      bridge.showToast(error?.message || "分析报告下载失败");
     } finally {
       setBusy(false);
     }
@@ -313,9 +312,9 @@
       });
       if (manifest.failures.length) bridge.showToast(`导出完成，${manifest.failures.length} 份失败`);
       else if (manifest.skipped.length) bridge.showToast(`已导出，跳过 ${manifest.skipped.length} 份尚无报告的档案`);
-      else bridge.showToast("全部分析报告已导出");
+      else bridge.showToast("全部档案已导出");
     } catch (error) {
-      bridge.showToast(error?.message || "全部报告导出失败");
+      bridge.showToast(error?.message || "全部档案导出失败");
     } finally {
       exportButton.querySelector("b").textContent = "导出";
       setBusy(false);

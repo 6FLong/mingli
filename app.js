@@ -4679,7 +4679,7 @@ async function deleteProfile(profileId) {
   if (!profile) return;
 
   const confirmed = window.confirm(
-    `永久删除「${profile.name}」？\n\n将同时删除档案、命盘、全部会话与消息、滚动摘要和云端分析报告，删除后不进入回收站。请先确认报告 ZIP 已保存到本地。`,
+    `永久删除「${profile.name}」？\n\n将同时删除档案、命盘、全部会话与消息、滚动摘要和云端分析报告，删除后不进入回收站。请先确认档案备份已保存到本地。`,
   );
   if (!confirmed) return;
 

@@ -43,7 +43,7 @@
     const city = safeFilename(profile.birth_place || "未知城市");
     const name = safeFilename(profile.name || "未命名");
     const birth = safeFilename(profile.birth_date || "未知日期");
-    return `${city}-${name}-${birth}-命理分析报告`;
+    return `${city}-${name}-${birth}`;
   }
 
   function beijingLabel(value) {
@@ -259,7 +259,7 @@
       },
     ];
     return {
-      title: "客户命理分析报告",
+      title: "分析报告",
       reportKind: "client",
       identityLine: `${profile.name}｜${profile.relation}｜${profile.birth_place || "未知城市"}｜${profile.birth_date}`,
       updatedAt: generatedAt,
@@ -286,27 +286,39 @@
     };
   }
 
-  function archivePresentation(data, clientPresentation) {
-    const summaryContent = data.summary?.content || {};
-    const backgroundItems = [
-      ...(summaryContent.confirmedContext || []).map((text) => ({ label: "已确认背景", text })),
-      ...(summaryContent.decisionsAndOutcomes || []).map((text) => ({ label: "决定与结果", text })),
-      ...(summaryContent.openQuestions || []).map((text) => ({ label: "待确认", text })),
-      ...(summaryContent.riskNotes || []).map((text) => ({ label: "风险边界", text })),
+  function assistantHistoryText(message) {
+    const answer = message.structured_content?.answer;
+    if (!answer || typeof answer !== "object") return String(message.content || "").trim() || "（无文字内容）";
+    const directAnswer = [answer.conclusion, answer.modernExplanation].map((item) => String(item || "").trim()).filter(Boolean).join("\n");
+    const reasoning = Array.isArray(answer.zipingReasoning)
+      ? answer.zipingReasoning.map((item) => [item?.claim, item?.explanation].filter(Boolean).join("：")).filter(Boolean)
+      : [];
+    const suggestions = Array.isArray(answer.suggestions) ? answer.suggestions.filter(Boolean) : [];
+    const uncertainties = Array.isArray(answer.uncertainties) ? answer.uncertainties.filter(Boolean) : [];
+    const details = [
+      ...reasoning.map((text) => `为什么这样看：${text}`),
+      ...suggestions.map((text) => `接下来可以：${text}`),
+      ...uncertainties.map((text) => `还要留意：${text}`),
     ];
+    return [directAnswer, details.length ? `详细解释\n${details.join("\n")}` : ""].filter(Boolean).join("\n\n")
+      || String(message.content || "").trim()
+      || "（无文字内容）";
+  }
+
+  function historyPresentation(data, generatedAt = new Date().toISOString()) {
     const historyItems = (data.messages || []).map((message) => ({
-      label: `${message.role === "assistant" ? "分析回复" : "咨询问题"}｜${beijingLabel(message.created_at)}`,
-      text: String(message.content || "").trim() || "（无文字内容）",
+      label: `${message.role === "assistant" ? "回复" : "咨询"}｜${beijingLabel(message.created_at)}`,
+      text: message.role === "assistant"
+        ? assistantHistoryText(message)
+        : String(message.content || "").trim() || "（无文字内容）",
     }));
     return {
-      ...clientPresentation,
-      title: "完整咨询留存报告",
-      reportKind: "archive",
-      sections: [
-        ...clientPresentation.sections,
-        { title: "客户背景摘要", items: backgroundItems.length ? backgroundItems : [{ text: "暂无额外背景摘要。" }] },
-        { title: "完整咨询记录", items: historyItems.length ? historyItems : [{ text: "暂无咨询记录。" }] },
-      ],
+      title: "历史咨询",
+      reportKind: "history",
+      identityLine: `${data.profile.name}｜${data.profile.relation}｜${data.profile.birth_place || "未知城市"}｜${data.profile.birth_date}`,
+      updatedAt: generatedAt,
+      updatedAtLabel: beijingLabel(generatedAt),
+      sections: [{ title: "历史咨询", items: historyItems.length ? historyItems : [{ text: "暂无咨询记录。" }] }],
     };
   }
 
@@ -342,26 +354,46 @@
   async function buildProfilePackage(profileId) {
     const data = await loadProfileData(profileId);
     const generatedAt = new Date().toISOString();
-    const presentation = reportPresentation(data, generatedAt);
-    const archive = archivePresentation(data, presentation);
+    if (!data.report) {
+      const error = new Error("该档案尚未生成分析报告，请先在首页生成");
+      error.code = "report_not_available";
+      throw error;
+    }
+    const reportGeneratedAt = data.report.generated_at || data.report.updated_at || generatedAt;
+    const presentation = data.report.presentation_snapshot || reportPresentation(data, reportGeneratedAt);
+    const history = historyPresentation(data, generatedAt);
     const clientPdf = await utils.generateReportPdf(presentation);
-    const archivePdf = await utils.generateReportPdf(archive);
+    const historyPdf = await utils.generateReportPdf(history);
     const recovery = await recoveryData(data, generatedAt);
     const base = baseFilename(data.profile);
-    const recoveryName = `${base.replace(/命理分析报告$/, "恢复数据")}.json`;
-    const archiveName = `${base.replace(/命理分析报告$/, "完整咨询留存报告")}.pdf`;
+    const analysisName = `${base}-分析报告.pdf`;
+    const historyName = `${base}-历史咨询.pdf`;
+    const recoveryName = `${base}-恢复数据.json`;
     const zip = utils.createZip([
-      { name: `${base}.pdf`, data: clientPdf },
-      { name: archiveName, data: archivePdf },
+      { name: analysisName, data: clientPdf },
+      { name: historyName, data: historyPdf },
       { name: recoveryName, data: JSON.stringify(recovery, null, 2) },
     ]);
-    return { data, presentation, archivePresentation: archive, pdf: clientPdf, clientPdf, archivePdf, recovery, zip, base };
+    return {
+      data,
+      presentation,
+      historyPresentation: history,
+      pdf: clientPdf,
+      clientPdf,
+      historyPdf,
+      recovery,
+      zip,
+      base,
+      analysisName,
+      historyName,
+      recoveryName,
+      packageName: `${base}-档案备份.zip`,
+    };
   }
 
   async function downloadClientReport(profileId) {
     const pkg = await buildProfilePackage(profileId);
-    utils.downloadBytes(pkg.clientPdf, `${pkg.base}.pdf`, "application/pdf");
-    void uploadCurrentReport(pkg).catch(() => undefined);
+    utils.downloadBytes(pkg.clientPdf, pkg.analysisName, "application/pdf");
     return pkg;
   }
 
@@ -403,20 +435,19 @@
   }
 
   async function refreshProfileReport(profileId) {
-    const pkg = await buildProfilePackage(profileId);
+    const data = await loadProfileData(profileId);
+    const generatedAt = new Date().toISOString();
+    const presentation = reportPresentation(data, generatedAt);
+    const clientPdf = await utils.generateReportPdf(presentation);
+    const pkg = { data, presentation, pdf: clientPdf, clientPdf };
     await uploadCurrentReport(pkg);
     return pkg;
   }
 
   async function saveProfilePackage(profileId) {
     const pkg = await buildProfilePackage(profileId);
-    utils.downloadBytes(pkg.zip, `${pkg.base}.zip`, "application/zip");
-    try {
-      await uploadCurrentReport(pkg);
-      return { ...pkg, cloudSynced: true };
-    } catch (error) {
-      return { ...pkg, cloudSynced: false, cloudError: error?.message || "云端报告更新失败" };
-    }
+    utils.downloadBytes(pkg.zip, pkg.packageName, "application/zip");
+    return pkg;
   }
 
   async function exportAllProfiles(onProgress = () => {}) {
@@ -431,9 +462,9 @@
         const pkg = await buildProfilePackage(profile.id);
         const folder = `${safeFilename(profile.name)}-${String(profile.id).slice(0, 8)}`;
         entries.push(
-          { name: `${folder}/${pkg.base}.pdf`, data: pkg.clientPdf },
-          { name: `${folder}/${pkg.base.replace(/命理分析报告$/, "完整咨询留存报告")}.pdf`, data: pkg.archivePdf },
-          { name: `${folder}/${pkg.base.replace(/命理分析报告$/, "恢复数据")}.json`, data: JSON.stringify(pkg.recovery, null, 2) },
+          { name: `${folder}/${pkg.analysisName}`, data: pkg.clientPdf },
+          { name: `${folder}/${pkg.historyName}`, data: pkg.historyPdf },
+          { name: `${folder}/${pkg.recoveryName}`, data: JSON.stringify(pkg.recovery, null, 2) },
         );
         manifest.profiles.push({ id: profile.id, name: profile.name, folder });
       } catch (error) {
@@ -443,11 +474,11 @@
       }
     }
     if (!manifest.profiles.length) {
-      const firstFailure = manifest.failures[0]?.error || "没有可导出的报告";
-      throw new Error(`全部报告导出失败：${firstFailure}`);
+      const firstFailure = manifest.failures[0]?.error || manifest.skipped[0]?.reason || "没有可导出的档案备份";
+      throw new Error(`全部档案导出失败：${firstFailure}`);
     }
     const readableSummary = [
-      "有点玄全部报告导出说明",
+      "有点玄全部档案导出说明",
       `导出时间：${new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", dateStyle: "long", timeStyle: "medium" }).format(new Date(manifest.exportedAt))}`,
       `成功：${manifest.profiles.length} 份`,
       `跳过：${manifest.skipped.length} 份`,
@@ -457,13 +488,13 @@
       ...manifest.skipped.map((item) => `跳过：${item.name}｜${item.reason}`),
       ...manifest.failures.map((item) => `失败：${item.name}｜${item.error}`),
       "",
-      "每个档案目录内包含客户 PDF、完整咨询留存 PDF 与恢复数据 JSON；导入应用时请选择整个 ZIP，不要单独选择 JSON。",
+      "每个档案目录内包含分析报告 PDF、历史咨询 PDF 与恢复数据 JSON。历史咨询不包含命盘或分析报告内容；恢复时请选择整个 ZIP。",
     ].join("\n");
     entries.push({ name: "导出说明.txt", data: readableSummary });
     entries.push({ name: "总清单.json", data: JSON.stringify(manifest, null, 2) });
     const zip = utils.createZip(entries);
     const date = new Date().toISOString().slice(0, 10);
-    utils.downloadBytes(zip, `全部命理分析报告-${date}.zip`, "application/zip");
+    utils.downloadBytes(zip, `有点玄全部档案-${date}.zip`, "application/zip");
     return manifest;
   }
 
@@ -493,7 +524,7 @@
     REPORT_VERSION,
     loadProfileData,
     reportPresentation,
-    archivePresentation,
+    historyPresentation,
     buildProfilePackage,
     downloadClientReport,
     refreshProfileReport,

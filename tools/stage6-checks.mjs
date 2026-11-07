@@ -30,16 +30,17 @@ check("报告固定使用唯一私有 Storage 路径并覆盖旧文件", () => {
   assert.match(reportClientSource, /status: "failed"/);
 });
 
-check("客户 PDF 与完整留存 ZIP 职责分离", () => {
-  assert.match(reportClientSource, /\$\{base\}\.pdf/);
-  assert.match(reportClientSource, /完整咨询留存报告/);
+check("分析报告、历史咨询与恢复数据职责分离", () => {
+  assert.match(reportClientSource, /\$\{base\}-分析报告\.pdf/);
+  assert.match(reportClientSource, /\$\{base\}-历史咨询\.pdf/);
+  assert.match(reportClientSource, /reportKind: "history"/);
   assert.match(reportClientSource, /downloadClientReport/);
   assert.match(reportClientSource, /恢复数据/);
-  assert.match(reportClientSource, /全部命理分析报告-/);
+  assert.match(reportClientSource, /有点玄全部档案-/);
   assert.match(html, /id="downloadClientReport"/);
   assert.doesNotMatch(html, /id="refreshCurrentReport"|id="saveCurrentReport"/);
   assert.match(html, /accept="application\/zip,\.zip/);
-  assert.match(html, /导出全部分析报告/);
+  assert.match(html, /导出全部档案/);
   const exportBody = reportClientSource.match(/async function exportAllProfiles[\s\S]*?\n  }\n\n  async function inspectImportZip/)?.[0] || "";
   assert.match(exportBody, /buildProfilePackage\(profile\.id\)/);
   assert.doesNotMatch(exportBody, /refreshProfileReport\(profile\.id\)/);
@@ -236,12 +237,12 @@ async function verifyMobileZipFlow(browserType, launchOptions, contextOptions, n
       page.waitForEvent("download"),
       page.locator("#downloadClientReport").tap(),
     ]);
-    assert.match(download.suggestedFilename(), /^北京-本人报告测试-1990-01-02-命理分析报告\.pdf$/);
+    assert.match(download.suggestedFilename(), /^北京-本人报告测试-1990-01-02-分析报告\.pdf$/);
 
     await page.locator('[data-go="mine"]').last().tap();
     const restoreCountBeforePreview = restoreRequests.length;
     await page.locator("#backupFileInput").setInputFiles({
-      name: "北京-本人报告测试-1990-01-02-命理分析报告.zip",
+      name: "北京-本人报告测试-1990-01-02-档案备份.zip",
       mimeType: "application/zip",
       buffer: Buffer.from(zipBytes),
     });
@@ -252,9 +253,9 @@ async function verifyMobileZipFlow(browserType, launchOptions, contextOptions, n
     assert.equal(await page.locator("#confirmReportImport").isEnabled(), true);
     assert.equal(restoreRequests.length, restoreCountBeforePreview, "导入预览不得写入云端");
     assert.deepEqual(pageErrors, [], `${name} 页面脚本报错`);
-    checks.push({ name: `${name} 客户 PDF 下载与留存 ZIP 导入预览`, ok: true });
+    checks.push({ name: `${name} 分析报告下载与档案备份导入预览`, ok: true });
   } catch (error) {
-    checks.push({ name: `${name} 报告 ZIP 下载与导入预览`, ok: false, error });
+    checks.push({ name: `${name} 档案备份下载与导入预览`, ok: false, error });
   } finally {
     await deviceBrowser.close();
   }
@@ -339,14 +340,17 @@ try {
       pdfPrefix: window.MingliReportUtils.decoder.decode(pkg.pdf.slice(0, 8)),
       pdfSuffix: window.MingliReportUtils.decoder.decode(pkg.pdf.slice(-8)),
       pdfSize: pkg.pdf.length,
-      archivePdfSize: pkg.archivePdf.length,
+      historyPdfSize: pkg.historyPdf.length,
       zipNames: [...entries.keys()],
       recovery,
       base: pkg.base,
       reportKind: pkg.presentation.reportKind,
-      archiveKind: pkg.archivePresentation.reportKind,
+      historyKind: pkg.historyPresentation.reportKind,
       clientSectionTitles: pkg.presentation.sections.map((section) => section.title),
-      archiveSectionTitles: pkg.archivePresentation.sections.map((section) => section.title),
+      historySectionTitles: pkg.historyPresentation.sections.map((section) => section.title),
+      historySerialized: JSON.stringify(pkg.historyPresentation),
+      historyHasOverview: Object.hasOwn(pkg.historyPresentation, "overview"),
+      historyHasVisuals: Object.hasOwn(pkg.historyPresentation, "visuals"),
       visuals: pkg.presentation.visuals,
       relationItems: pkg.presentation.sections.find((section) => section.title === "原局与岁运关系")?.items || [],
     };
@@ -354,13 +358,19 @@ try {
   assert.match(packageInfo.pdfPrefix, /^%PDF-1\.4/);
   assert.match(packageInfo.pdfSuffix, /%%EOF$/);
   assert.ok(packageInfo.pdfSize > 20_000, "PDF 应包含实际报告页面图像");
-  assert.ok(packageInfo.archivePdfSize > packageInfo.pdfSize, "完整留存 PDF 应包含额外咨询记录");
+  assert.ok(packageInfo.historyPdfSize > 10_000, "历史咨询 PDF 应包含实际咨询内容");
   assert.equal(packageInfo.zipNames.filter((name) => name.endsWith(".pdf")).length, 2);
   assert.equal(packageInfo.zipNames.filter((name) => name.endsWith("恢复数据.json")).length, 1);
   assert.equal(packageInfo.reportKind, "client");
-  assert.equal(packageInfo.archiveKind, "archive");
+  assert.equal(packageInfo.historyKind, "history");
   assert.equal(packageInfo.clientSectionTitles.includes("完整咨询记录"), false);
-  assert.equal(packageInfo.archiveSectionTitles.includes("完整咨询记录"), true);
+  assert.deepEqual(packageInfo.historySectionTitles, ["历史咨询"]);
+  assert.equal(packageInfo.historyHasOverview, false);
+  assert.equal(packageInfo.historyHasVisuals, false);
+  assert.match(packageInfo.historySerialized, /新工作是否合适/);
+  assert.match(packageInfo.historySerialized, /先验证机会/);
+  assert.match(packageInfo.historySerialized, /为什么这样看/);
+  assert.doesNotMatch(packageInfo.historySerialized, /五行结构|十神分布|命盘基础|子平判断依据|咨询核心结论/);
   assert.equal(packageInfo.visuals.elements.items.length, 5);
   assert.equal(packageInfo.visuals.tenGods.items.length, 10);
   assert.ok(new Set(packageInfo.visuals.tenGods.items.map((item) => item.color)).size >= 5, "十神图不应使用单一颜色");
@@ -371,7 +381,7 @@ try {
   assert.equal(packageInfo.recovery.conversations.length, 1);
   assert.equal(packageInfo.recovery.messages.length, 2);
   assert.doesNotMatch(JSON.stringify(packageInfo.recovery), /access_token|refresh_token|DEEPSEEK_API_KEY|service_role/i);
-  assert.equal(packageInfo.base, "北京-本人报告测试-1990-01-02-命理分析报告");
+  assert.equal(packageInfo.base, "北京-本人报告测试-1990-01-02");
   assert.deepEqual(packageInfo.relationItems.map((item) => item.label), ["卯酉六冲", "午未六合"]);
   assert.match(packageInfo.relationItems[0].text, /涉及月柱、时柱：地支相冲/);
   assert.match(packageInfo.relationItems[1].text, /当前大运（大运）、当前流年（流年）/);
@@ -387,15 +397,15 @@ try {
     )),
   ]);
   fs.copyFileSync(await clientPdfDownload.path(), path.join(artifactDir, "stage6-client-report.pdf"));
-  const [archivePdfDownload] = await Promise.all([
+  const [historyPdfDownload] = await Promise.all([
     page.waitForEvent("download"),
     page.evaluate(() => window.MingliReportUtils.downloadBytes(
-      window.__stage6ReportPackage.archivePdf,
-      "stage6-archive-report.pdf",
+      window.__stage6ReportPackage.historyPdf,
+      "stage6-history.pdf",
       "application/pdf",
     )),
   ]);
-  fs.copyFileSync(await archivePdfDownload.path(), path.join(artifactDir, "stage6-archive-report.pdf"));
+  fs.copyFileSync(await historyPdfDownload.path(), path.join(artifactDir, "stage6-history.pdf"));
 
   await page.evaluate((id) => window.MingliReportClient.refreshProfileReport(id), profileId);
   assert.equal(storageWrites.length, 1);
@@ -423,27 +433,29 @@ try {
     page.waitForEvent("download"),
     page.evaluate(() => window.MingliReportClient.exportAllProfiles()),
   ]);
-  assert.match(allDownload.suggestedFilename(), /^全部命理分析报告-\d{4}-\d{2}-\d{2}\.zip$/);
-  assert.equal(allManifest.profiles.length, 2);
-  assert.equal(allManifest.skipped.length, 0);
+  assert.match(allDownload.suggestedFilename(), /^有点玄全部档案-\d{4}-\d{2}-\d{2}\.zip$/);
+  assert.equal(allManifest.profiles.length, 1);
+  assert.equal(allManifest.skipped.length, 1);
   assert.equal(allManifest.failures.length, 0);
   assert.equal(storageWrites.length, storageWritesBeforeExport, "全部导出不应依赖云端 Storage 上传");
   const allZipBytes = fs.readFileSync(await allDownload.path());
   const allZipNames = await page.evaluate((bytes) => (
     [...window.MingliReportUtils.readZip(new Uint8Array(bytes)).keys()]
   ), [...allZipBytes]);
-  assert.equal(allZipNames.filter((name) => name.endsWith(".pdf")).length, 4);
-  assert.equal(allZipNames.filter((name) => name.endsWith("恢复数据.json")).length, 2);
+  assert.equal(allZipNames.filter((name) => name.endsWith("-分析报告.pdf")).length, 1);
+  assert.equal(allZipNames.filter((name) => name.endsWith("-历史咨询.pdf")).length, 1);
+  assert.equal(allZipNames.filter((name) => name.endsWith("恢复数据.json")).length, 1);
   assert.ok(allZipNames.includes("导出说明.txt"));
   assert.ok(allZipNames.includes("总清单.json"));
   const readableSummary = await page.evaluate((bytes) => {
     const entries = window.MingliReportUtils.readZip(new Uint8Array(bytes));
     return window.MingliReportUtils.decoder.decode(entries.get("导出说明.txt"));
   }, [...allZipBytes]);
-  assert.match(readableSummary, /成功：2 份/);
-  assert.match(readableSummary, /跳过：0 份/);
+  assert.match(readableSummary, /成功：1 份/);
+  assert.match(readableSummary, /跳过：1 份/);
   assert.match(readableSummary, /失败：0 份/);
-  checks.push({ name: "全部导出不依赖 Storage，只有命盘也能生成分析报告", ok: true });
+  assert.match(readableSummary, /历史咨询不包含命盘或分析报告内容/);
+  checks.push({ name: "全部导出不依赖 Storage，并跳过尚未生成分析报告的档案", ok: true });
 
   failProfileDetailReads = true;
   let unexpectedDownload = false;
@@ -458,12 +470,12 @@ try {
   });
   await page.waitForTimeout(300);
   failProfileDetailReads = false;
-  assert.match(failedExportMessage, /全部报告导出失败/);
+  assert.match(failedExportMessage, /全部档案导出失败/);
   assert.equal(unexpectedDownload, false, "全部失败时不得下载只有错误清单的 ZIP");
   checks.push({ name: "全部档案生成失败时不下载误导性的空 ZIP", ok: true });
 
   assert.deepEqual(pageErrors, []);
-  checks.push({ name: "浏览器生成可解析 PDF、ZIP、恢复 JSON并覆盖云端当前报告", ok: true });
+  checks.push({ name: "浏览器生成独立的分析报告、历史咨询和恢复数据", ok: true });
   checks.push({ name: "损坏 ZIP 会在导入写库前被拒绝", ok: true });
   await verifyMobileZipFlow(
     chromium,
