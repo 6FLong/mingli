@@ -32,13 +32,13 @@ begin
 
   perform pg_advisory_xact_lock(hashtextextended(target_profile_id::text, 0));
 
-  select * into existing_char
+  select * into existing_chart
   from public.bazi_charts
-  where profile_id = target_profile_id and is_curren
+  where profile_id = target_profile_id and is_current
   limit 1;
 
   if existing_chart.id is not null
-     and existing_chart.birth_fingerprint = target_birth_fingerprin
+     and existing_chart.birth_fingerprint = target_birth_fingerprint
      and existing_chart.engine_version = target_engine_version
      and existing_chart.schema_version = target_schema_version then
     return existing_chart;
@@ -61,7 +61,7 @@ begin
     ruleset,
     birth_fingerprint,
     facts,
-    is_curren
+    is_current
   ) values (
     current_user_id,
     target_profile_id,

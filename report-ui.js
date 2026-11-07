@@ -8,6 +8,7 @@
   const syncStatus = document.querySelector("#reportSyncStatus");
   const preview = document.querySelector("#reportPreviewContent");
   const downloadButton = document.querySelector("#downloadClientReport");
+  const generateButton = document.querySelector("#generateClientReport");
   const exportButton = document.querySelector("#exportData");
   const importButton = document.querySelector("#importData");
   const importInput = document.querySelector("#backupFileInput");
@@ -30,6 +31,7 @@
   function setBusy(value, message = "") {
     busy = value;
     downloadButton.disabled = value || !currentProfileId;
+    generateButton.disabled = value || !currentProfileId;
     exportButton.disabled = value;
     if (message) {
       syncStatus.textContent = message;
@@ -37,12 +39,14 @@
     }
   }
 
-  function renderEmpty(title, detail, state = "未生成") {
+  function renderEmpty(title, detail, state = "未生成", canGenerate = false) {
     statusTitle.textContent = title;
     statusText.textContent = detail;
     syncStatus.textContent = state;
     syncStatus.dataset.tone = "";
     downloadButton.disabled = true;
+    generateButton.hidden = !canGenerate;
+    generateButton.textContent = "生成分析报告";
     preview.replaceChildren();
   }
 
@@ -121,6 +125,8 @@
     syncStatus.textContent = status === "ready" ? "已同步" : status === "failed" ? "更新失败" : "待更新";
     syncStatus.dataset.tone = status === "ready" ? "ready" : "warning";
     downloadButton.disabled = false;
+    generateButton.hidden = status === "ready";
+    generateButton.textContent = status === "ready" ? "生成分析报告" : "重新生成";
     const overview = element("section", "report-modern-overview");
     overview.append(
       element("span", "", "先用现代话看整体"),
@@ -161,13 +167,14 @@
     try {
       const data = await client.loadProfileData(profileId);
       if (currentGeneration !== generation) return;
-      const completed = data.messages.some((message) => message.role === "assistant" && message.status === "complete");
-      if (!completed) {
-        renderEmpty("尚未生成报告", "完成首次咨询后，这里会展示持续更新的分析报告。", "未生成");
+      const hasGeneratedReport = Boolean(data.report?.generated_at && data.report?.storage_path);
+      if (!hasGeneratedReport) {
+        renderEmpty("尚未生成分析报告", "命盘已经可以查看。需要交付或留存时，再生成包含命盘解读和现有咨询内容的最终报告。", "未生成", true);
         return;
       }
       const generatedAt = data.report?.generated_at || data.report?.updated_at || new Date().toISOString();
-      renderPresentation(client.reportPresentation(data, generatedAt), data.report?.status || "stale");
+      const presentation = data.report?.presentation_snapshot || client.reportPresentation(data, generatedAt);
+      renderPresentation(presentation, data.report?.status || "stale");
     } catch (error) {
       if (currentGeneration !== generation) return;
       renderEmpty("报告读取失败", error?.message || "请检查网络后重试。", "失败");
@@ -219,6 +226,11 @@
     } finally {
       setBusy(false);
     }
+  });
+
+  generateButton.addEventListener("click", async () => {
+    if (!currentProfileId || busy) return;
+    await refreshProfile(currentProfileId).catch(() => undefined);
   });
 
   exportButton.addEventListener("click", async () => {
@@ -287,9 +299,6 @@
     confirmImport.textContent = "正在恢复…";
     try {
       const result = await client.restorePackages(importPackages.map((item) => item.data), mode);
-      for (const profileId of result.profileIds || []) {
-        await client.refreshProfileReport(profileId);
-      }
       importStatus.textContent = `恢复完成：成功 ${result.restored} 份，跳过 ${result.skipped} 份。`;
       bridge.showToast("备份已恢复到云端");
       await bridge.reloadCloudData();
@@ -302,9 +311,6 @@
   });
 
   global.addEventListener("mingli:profile-changed", (event) => void loadProfile(event.detail?.profileId || null));
-  global.addEventListener("mingli:consultation-complete", (event) => {
-    void refreshProfile(event.detail?.profileId, { quiet: true }).catch(() => undefined);
-  });
 
   global.MingliReportUi = Object.freeze({ saveProfile, refreshProfile, loadProfile });
 })(window);

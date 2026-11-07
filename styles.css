@@ -2770,6 +2770,49 @@ body,
   box-shadow: none;
 }
 
+.chart-interpretation-sections {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.chart-interpretation-section {
+  padding-top: 12px;
+  border-top: 1px solid #e7def0;
+}
+
+.chart-interpretation-section h3 {
+  margin: 0 0 5px;
+  color: #554267;
+  font-size: 14px;
+}
+
+.chart-interpretation-section p {
+  margin: 0;
+  color: #5f566d;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.chart-interpretation-retry,
+.report-generate-button {
+  min-height: 36px;
+  margin-top: 13px;
+  padding: 0 13px;
+  border: 1px solid #cdbcf0;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #6248ad;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.report-generate-button {
+  margin-top: 0;
+  background: #8065ce;
+  color: #ffffff;
+}
+
 .page-action,
 .page-action.icon-only {
   width: 38px;

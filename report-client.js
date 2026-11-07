@@ -139,7 +139,14 @@
     });
   }
 
-  function modernOverview(facts) {
+  function modernOverview(facts, interpretation = null) {
+    if (interpretation?.schemaVersion === "chart-interpretation-v1") {
+      return {
+        title: interpretation.headline,
+        text: interpretation.summary,
+        method: "这段人话解读只引用程序已经计算好的 bazi-facts-v1，不会重新排盘。",
+      };
+    }
     const day = facts.pillars?.day;
     const strength = facts.strength || {};
     const pattern = facts.pattern || {};
@@ -191,10 +198,18 @@
       ...(facts.relations?.natal || []),
       ...(facts.relations?.active || []),
     ].slice(0, 20);
-    const overview = modernOverview(facts);
+    const interpretation = chart.ai_interpretation || null;
+    const overview = modernOverview(facts, interpretation);
     const currentLuck = facts.luck?.current;
     const currentAnnual = facts.annual || facts.futureAnnuals?.[0];
+    const interpretationSections = Array.isArray(interpretation?.sections)
+      ? interpretation.sections.map((section) => ({
+          title: section.title,
+          items: [{ text: section.text, factRefs: section.factRefs || [] }],
+        }))
+      : [];
     const sections = [
+      ...interpretationSections,
       {
         title: "命盘基础",
         items: [
@@ -318,11 +333,6 @@
 
   async function buildProfilePackage(profileId) {
     const data = await loadProfileData(profileId);
-    if (!data.messages.some((message) => message.role === "assistant" && message.status === "complete")) {
-      const error = new Error("该档案还没有成功咨询记录，暂不能生成分析报告");
-      error.code = "report_not_available";
-      throw error;
-    }
     const generatedAt = new Date().toISOString();
     const presentation = reportPresentation(data, generatedAt);
     const archive = archivePresentation(data, presentation);
@@ -366,6 +376,7 @@
           report_core: currentCore,
           report_version: Number(pkg.data.report?.report_version || 0) + 1,
           format_version: REPORT_VERSION,
+          presentation_snapshot: pkg.presentation,
           storage_path: path,
           status: "ready",
           last_error: null,

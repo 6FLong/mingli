@@ -162,7 +162,7 @@ const messages = [
   { id: "66666666-6666-4666-8666-666666666666", owner_id: ownerId, profile_id: profileId, conversation_id: conversationId, chart_id: chartId, role: "assistant", status: "complete", content: "先验证机会。", structured_content: answer, fact_refs: ["strength.label"], idempotency_key: null, error_code: null, created_at: "2026-11-03T01:00:01.000Z", updated_at: "2026-11-03T01:00:01.000Z" },
 ];
 const summary = { id: "77777777-7777-4777-8777-777777777777", owner_id: ownerId, profile_id: profileId, content: { coreTopics: ["事业"], confirmedContext: ["正在考虑新工作"], keyConclusions: [], decisionsAndOutcomes: [], openQuestions: ["合同条件"], riskNotes: [] }, version: 1, last_consulted_at: "2026-11-03T01:00:01.000Z" };
-const report = { id: "88888888-8888-4888-8888-888888888888", owner_id: ownerId, profile_id: profileId, report_core: { items: [{ id: "career", topic: "事业", conclusion: "先验证再决定。", factRefs: ["strength.label"], status: "active" }], latestSummary: "事业机会需要验证。" }, report_version: 1, format_version: "mingli-report-v1", storage_path: null, status: "stale", generated_at: null, created_at: "2026-11-03T01:00:01.000Z", updated_at: "2026-11-03T01:00:01.000Z" };
+const report = { id: "88888888-8888-4888-8888-888888888888", owner_id: ownerId, profile_id: profileId, report_core: { items: [{ id: "career", topic: "事业", conclusion: "先验证再决定。", factRefs: ["strength.label"], status: "active" }], latestSummary: "事业机会需要验证。" }, report_version: 1, format_version: "mingli-report-v1", storage_path: `${ownerId}/${profileId}/current-report.pdf`, status: "ready", generated_at: "2026-11-03T01:00:01.000Z", created_at: "2026-11-03T01:00:01.000Z", updated_at: "2026-11-03T01:00:01.000Z" };
 
 function json(route, body, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
@@ -422,26 +422,26 @@ try {
     page.evaluate(() => window.MingliReportClient.exportAllProfiles()),
   ]);
   assert.match(allDownload.suggestedFilename(), /^全部命理分析报告-\d{4}-\d{2}-\d{2}\.zip$/);
-  assert.equal(allManifest.profiles.length, 1);
-  assert.equal(allManifest.skipped.length, 1);
+  assert.equal(allManifest.profiles.length, 2);
+  assert.equal(allManifest.skipped.length, 0);
   assert.equal(allManifest.failures.length, 0);
   assert.equal(storageWrites.length, storageWritesBeforeExport, "全部导出不应依赖云端 Storage 上传");
   const allZipBytes = fs.readFileSync(await allDownload.path());
   const allZipNames = await page.evaluate((bytes) => (
     [...window.MingliReportUtils.readZip(new Uint8Array(bytes)).keys()]
   ), [...allZipBytes]);
-  assert.equal(allZipNames.filter((name) => name.endsWith(".pdf")).length, 2);
-  assert.equal(allZipNames.filter((name) => name.endsWith("恢复数据.json")).length, 1);
+  assert.equal(allZipNames.filter((name) => name.endsWith(".pdf")).length, 4);
+  assert.equal(allZipNames.filter((name) => name.endsWith("恢复数据.json")).length, 2);
   assert.ok(allZipNames.includes("导出说明.txt"));
   assert.ok(allZipNames.includes("总清单.json"));
   const readableSummary = await page.evaluate((bytes) => {
     const entries = window.MingliReportUtils.readZip(new Uint8Array(bytes));
     return window.MingliReportUtils.decoder.decode(entries.get("导出说明.txt"));
   }, [...allZipBytes]);
-  assert.match(readableSummary, /成功：1 份/);
-  assert.match(readableSummary, /跳过：1 份/);
+  assert.match(readableSummary, /成功：2 份/);
+  assert.match(readableSummary, /跳过：0 份/);
   assert.match(readableSummary, /失败：0 份/);
-  checks.push({ name: "全部导出不依赖 Storage，并跳过尚无报告的档案而不误报失败", ok: true });
+  checks.push({ name: "全部导出不依赖 Storage，只有命盘也能生成分析报告", ok: true });
 
   failProfileDetailReads = true;
   let unexpectedDownload = false;

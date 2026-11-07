@@ -70,7 +70,7 @@
 
             <div class="home-segments" role="tablist" aria-label="当前档案内容">
               <button class="is-selected" type="button" role="tab" aria-selected="true" data-home-view="conversation">历史对话</button>
-              <button type="button" role="tab" aria-selected="false" data-home-view="chart">排盘</button>
+              <button type="button" role="tab" aria-selected="false" data-home-view="chart">命盘解读</button>
               <button type="button" role="tab" aria-selected="false" data-home-view="report">分析报告</button>
             </div>
           </div>
@@ -136,10 +136,12 @@
           <div class="home-workspace" data-home-panel="chart" hidden>
             <section class="workspace-section chart-overview">
               <div class="chart-summary">
-                <span>现代解读</span>
-                <strong id="chartSummaryTitle">先看整体节奏</strong>
-                <p id="chartSummaryText">排盘完成后，会先用现代话说明命盘主调和当前阶段。</p>
+                <span id="chartInterpretationStatus">AI 人话解读</span>
+                <strong id="chartSummaryTitle">正在读懂这张命盘</strong>
+                <p id="chartSummaryText">排盘保存后，会由 AI 只根据结构化命盘事实翻译成普通人能理解的话。</p>
                 <div class="chart-summary-tags" id="chartSummaryTags"></div>
+                <div class="chart-interpretation-sections" id="chartInterpretationSections"></div>
+                <button class="chart-interpretation-retry" type="button" id="retryChartInterpretation" hidden>重新解读</button>
               </div>
               <div class="pillar-table" id="chartPillars">
                 <div><span>年柱</span><strong>—</strong><em>—</em></div>
@@ -168,6 +170,7 @@
                 </div>
                 <div class="report-toolbar-actions">
                   <span class="report-sync-status" id="reportSyncStatus">未生成</span>
+                  <button class="report-generate-button" type="button" id="generateClientReport">生成分析报告</button>
                   <button class="report-download-button" type="button" id="downloadClientReport" disabled>下载 PDF</button>
                 </div>
               </div>

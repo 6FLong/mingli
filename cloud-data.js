@@ -141,6 +141,13 @@
     });
   }
 
+  async function explainCurrentChart(profileId, force = false) {
+    return cloud.request("/functions/v1/chart-explain", {
+      method: "POST",
+      body: JSON.stringify({ profileId, force }),
+    });
+  }
+
   global.MingliCloudData = Object.freeze({
     listProfiles,
     upsertProfiles,
@@ -148,6 +155,7 @@
     getSettings,
     saveSettings,
     saveCurrentChart,
+    explainCurrentChart,
     fromProfileRecord,
     toProfileRecord,
     normalizedRelation,

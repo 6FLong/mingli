@@ -66,6 +66,9 @@ const todayStateText = document.querySelector("#todayStateText");
 const chartSummaryTitle = document.querySelector("#chartSummaryTitle");
 const chartSummaryText = document.querySelector("#chartSummaryText");
 const chartSummaryTags = document.querySelector("#chartSummaryTags");
+const chartInterpretationStatus = document.querySelector("#chartInterpretationStatus");
+const chartInterpretationSections = document.querySelector("#chartInterpretationSections");
+const retryChartInterpretation = document.querySelector("#retryChartInterpretation");
 const chartPillars = document.querySelector("#chartPillars");
 const currentLuckLabel = document.querySelector("#currentLuckLabel");
 const luckTimeline = document.querySelector("#luckTimeline");
@@ -710,6 +713,8 @@ async function persistChart(chart) {
   if (!profile) return;
   await window.MingliCloudData.saveCurrentChart(profile, chart);
   await putRecordToDb(CHART_STORE, chart);
+  const response = await window.MingliCloudData.explainCurrentChart(profile.id);
+  if (profile.id === currentProfileId) renderChartInterpretation(response?.interpretation);
 }
 
 async function readSetting(key) {
@@ -2479,10 +2484,47 @@ function renderChartSummary(chart) {
   chartSummaryTags.replaceChildren(...summary.tags.map((tag) => createElement("span", "", tag)));
 }
 
+function renderChartInterpretation(interpretation) {
+  if (!interpretation || interpretation.schemaVersion !== "chart-interpretation-v1") {
+    renderChartInterpretationError("这次人话解读没有完成，可以重新生成。", true);
+    return;
+  }
+  chartInterpretationStatus.textContent = "AI 人话解读";
+  chartSummaryTitle.textContent = interpretation.headline;
+  chartSummaryText.textContent = interpretation.summary;
+  chartSummaryTags.replaceChildren(...(interpretation.tags || []).map((tag) => createElement("span", "", tag)));
+  chartInterpretationSections.replaceChildren(...(interpretation.sections || []).map((section) => {
+    const article = createElement("article", "chart-interpretation-section");
+    article.append(createElement("h3", "", section.title), createElement("p", "", section.text));
+    return article;
+  }));
+  retryChartInterpretation.hidden = true;
+}
+
+function renderChartInterpretationLoading() {
+  chartInterpretationStatus.textContent = "AI 人话解读";
+  chartSummaryTitle.textContent = "正在读懂这张命盘";
+  chartSummaryText.textContent = "只读取程序已经算好的四柱、旺衰、格局、用神、大运和流年，不会重新排盘。";
+  chartSummaryTags.replaceChildren(createElement("span", "", "正在解读"));
+  chartInterpretationSections.replaceChildren();
+  retryChartInterpretation.hidden = true;
+}
+
+function renderChartInterpretationError(message, allowRetry = false) {
+  chartInterpretationStatus.textContent = "AI 人话解读";
+  chartSummaryTitle.textContent = "命盘已经排好";
+  chartSummaryText.textContent = message || "人话解读暂时没有完成。";
+  chartSummaryTags.replaceChildren(createElement("span", "", "排盘数据已保留"));
+  chartInterpretationSections.replaceChildren();
+  retryChartInterpretation.hidden = !allowRetry;
+}
+
 function renderChartSummaryError(message) {
   chartSummaryTitle.textContent = "先把出生信息补完整";
   chartSummaryText.textContent = message || "有了出生日期和时间后，这里会先用现代话解释命盘主调，再展示四柱、大运和流年依据。";
   chartSummaryTags.replaceChildren(createElement("span", "", "待排盘"));
+  chartInterpretationSections.replaceChildren();
+  retryChartInterpretation.hidden = true;
 }
 
 function formatRuleRelations(relations, fallback) {
@@ -2502,7 +2544,7 @@ function renderDetailChart(chart) {
     return;
   }
 
-  renderChartSummary(chart);
+  renderChartInterpretationLoading();
 
   chartPillars.replaceChildren(
     createPillarCell("年柱", chart.pillars.year),
@@ -2605,7 +2647,9 @@ function renderCurrentProfileViews() {
   const chart = calculateBaziChart(profile);
   renderDetailChart(chart);
   renderHomeSummary(chart);
-  void persistChart(chart).catch(() => {});
+  void persistChart(chart).catch((error) => {
+    if (chart.profileId === currentProfileId) renderChartInterpretationError(error?.message || "人话解读暂时失败，请稍后重试。", true);
+  });
 }
 
 function setHomeView(viewName) {
@@ -5005,6 +5049,21 @@ confirmDatePickerButton.addEventListener("click", () => {
 });
 
 closeOptionPickerButton.addEventListener("click", closeOptionPicker);
+
+retryChartInterpretation.addEventListener("click", async () => {
+  const profile = getCurrentProfile();
+  if (!profile) return;
+  renderChartInterpretationLoading();
+  retryChartInterpretation.disabled = true;
+  try {
+    const response = await window.MingliCloudData.explainCurrentChart(profile.id, true);
+    if (profile.id === currentProfileId) renderChartInterpretation(response?.interpretation);
+  } catch (error) {
+    if (profile.id === currentProfileId) renderChartInterpretationError(error?.message || "人话解读暂时失败，请稍后重试。", true);
+  } finally {
+    retryChartInterpretation.disabled = false;
+  }
+});
 
 optionPickerSearch.addEventListener("input", renderOptionPicker);
 
