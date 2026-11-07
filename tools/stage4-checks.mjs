@@ -59,6 +59,9 @@ check("档案搜索不会触发 iPhone 自动缩放且我的页面不显示分�
   assert.ok(html.indexOf('id="logoutAccount"') > html.indexOf("应用版本"));
   assert.match(css, /\.archive-card \.archive-card-main\s*\{[\s\S]*?background:\s*transparent/);
   assert.match(css, /\.archive-card \.archive-more\s*\{[\s\S]*?width:\s*44px/);
+  assert.doesNotMatch(html, /已保存\s*<span data-profile-count|档案、命盘和咨询记录由当前管理员账号保存/);
+  assert.doesNotMatch(html, />云端连接<|>隐私范围</);
+  assert.ok(html.indexOf('class="cloud-usage-panel"') < html.indexOf('id="openLoginLogs"'));
 });
 
 check("三入口导航、账户弹层与手机窄屏有稳定尺寸规则", () => {
